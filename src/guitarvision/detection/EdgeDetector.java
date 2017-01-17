@@ -5,7 +5,7 @@ import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 
 public class EdgeDetector {
-	private int blurKernelSize = 5;
+	private int blurKernelSize = 4;
 	
 	private int cannyLowerThreshold = 0;
 	private int cannyUpperThreshold = 255;

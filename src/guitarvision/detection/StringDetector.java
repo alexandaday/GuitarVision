@@ -48,6 +48,7 @@ public class StringDetector {
 		}
 		
 		Random randomGenerator = new Random();
+		randomGenerator.setSeed(50);
 		
 		if(processingOptions == ImageProcessingOptions.DRAWGROUPINGS)
 		{
