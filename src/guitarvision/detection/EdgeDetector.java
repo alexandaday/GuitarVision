@@ -8,7 +8,8 @@ public class EdgeDetector {
 	private int blurKernelSize = 4;
 	
 	private int cannyLowerThreshold = 0;
-	private int cannyUpperThreshold = 255;
+	//Severe error - malloc problems, when this value is small up to 143
+	private int cannyUpperThreshold = 144;
 	
 	private int houghThreshold = 300;
 	

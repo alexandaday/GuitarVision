@@ -13,9 +13,9 @@ import org.opencv.imgproc.Imgproc;
 
 public class StringDetector {
 	public double angleAllowance = 1;
-	public int numberStringsToDetect = 6;
+	public static int numberStringsToDetect = 6;
 	
-	public ArrayList<PolarLine> getGuitarStrings(Mat image, EdgeDetector edgeDetector, ImageProcessingOptions processingOptions)
+	public ArrayList<GuitarString> getGuitarStrings(Mat originalImage, Mat imageToAnnotate, EdgeDetector edgeDetector, ImageProcessingOptions processingOptions)
 	{
 		if (edgeDetector == null)
 		{
@@ -25,40 +25,40 @@ public class StringDetector {
 			edgeDetector.setHoughThreshold(300);
 		}
 		
-		Mat cannyProcessedImage = edgeDetector.getEdges(image);
+		Mat cannyProcessedImage = edgeDetector.getEdges(originalImage);
 		
 		Mat houghLineParameters = edgeDetector.houghTransform(cannyProcessedImage);
 		
-		ArrayList<PolarLine> initialLines = getLinesFromParameters(houghLineParameters);
+		ArrayList<DetectedLine> initialLines = getLinesFromParameters(houghLineParameters);
 		
-		ArrayList<PolarLine> parallelLines = filterGuitarStrings(initialLines);
+		ArrayList<DetectedLine> parallelLines = filterGuitarStrings(initialLines);
 		
 		int noGroups = numberStringsToDetect;
 		
-		ArrayList<ArrayList<PolarLine>> stringGroupings = clusterGuitarStrings(parallelLines, noGroups);
+		ArrayList<ArrayList<DetectedLine>> stringGroupings = clusterGuitarStrings(parallelLines, noGroups);
 		
-		ArrayList<PolarLine> selectedStrings = selectGuitarString(stringGroupings);
+		ArrayList<GuitarString> selectedStrings = selectEachGuitarString(stringGroupings);
 		
-		if((processingOptions == ImageProcessingOptions.DRAWSTRINGS) || (processingOptions == ImageProcessingOptions.DRAWGROUPINGS))
+		if((processingOptions == ImageProcessingOptions.DRAWSELECTEDLINES) || (processingOptions == ImageProcessingOptions.DRAWCLUSTERS))
 		{
-			for(PolarLine string : selectedStrings)
+			for(DetectedLine string : selectedStrings)
 			{
-				Imgproc.line(image, string.getPoint1(), string.getPoint2(), new Scalar(255,255,255));
+				Imgproc.line(imageToAnnotate, string.getPoint1(), string.getPoint2(), new Scalar(255,255,255));
 			}
 		}
 		
 		Random randomGenerator = new Random();
 		randomGenerator.setSeed(50);
 		
-		if(processingOptions == ImageProcessingOptions.DRAWGROUPINGS)
+		if(processingOptions == ImageProcessingOptions.DRAWCLUSTERS)
 		{
-			for(ArrayList<PolarLine> stringGroup: stringGroupings)
+			for(ArrayList<DetectedLine> stringGroup: stringGroupings)
 			{
 				Scalar colour = new Scalar(randomGenerator.nextInt(255),randomGenerator.nextInt(255),randomGenerator.nextInt(255));
 				
-				for(PolarLine string: stringGroup)
+				for(DetectedLine string: stringGroup)
 				{
-					Imgproc.line(image, string.getPoint1(), string.getPoint2(), colour);
+					Imgproc.line(imageToAnnotate, string.getPoint1(), string.getPoint2(), colour);
 				}
 			}
 		}
@@ -66,15 +66,15 @@ public class StringDetector {
 		return selectedStrings;
 	}
 	
-	private ArrayList<PolarLine> getLinesFromParameters(Mat houghLines)
+	private ArrayList<DetectedLine> getLinesFromParameters(Mat houghLines)
 	{
-		ArrayList<PolarLine> guitarStrings = new ArrayList<PolarLine>();
+		ArrayList<DetectedLine> guitarStrings = new ArrayList<DetectedLine>();
 
 		for (int lineIndex = 0; lineIndex < houghLines.rows(); lineIndex++)
 		{
 			double[] polarLineParameters = houghLines.get(lineIndex, 0);
 
-			PolarLine currentString = new PolarLine(polarLineParameters[0], polarLineParameters[1]);
+			DetectedLine currentString = new DetectedLine(polarLineParameters[0], polarLineParameters[1]);
 
 			guitarStrings.add(currentString);
 		}
@@ -82,18 +82,18 @@ public class StringDetector {
 		return guitarStrings;
 	}
 
-	private ArrayList<PolarLine> filterGuitarStrings(ArrayList<PolarLine> candidateStrings)
+	private ArrayList<DetectedLine> filterGuitarStrings(ArrayList<DetectedLine> candidateStrings)
 	{
 		double totalAngle = 0;
 
-		for(PolarLine curString : candidateStrings)
+		for(DetectedLine curString : candidateStrings)
 		{
 			totalAngle += curString.theta;
 		}
 
 		double averageAngle = totalAngle/candidateStrings.size();
 
-		ArrayList<PolarLine> filteredStrings = new ArrayList<PolarLine>();
+		ArrayList<DetectedLine> filteredStrings = new ArrayList<DetectedLine>();
 
 		if (candidateStrings.size() > 0)
 		{
@@ -110,15 +110,15 @@ public class StringDetector {
 		return filteredStrings;
 	}
 
-	private ArrayList<ArrayList<PolarLine>> clusterGuitarStrings(ArrayList<PolarLine> filteredStrings, int noGroups)
+	private ArrayList<ArrayList<DetectedLine>> clusterGuitarStrings(ArrayList<DetectedLine> filteredStrings, int noGroups)
 	{
 		//Create matrix to cluster with the y intercepts of all lines
 		Mat linesToCluster = new Mat(filteredStrings.size(), 1, CvType.CV_32F);
 
 		for(int a = 0; a < filteredStrings.size(); a++)
 		{
-			PolarLine curString = filteredStrings.get(a);
-			double yIntercept = curString.rho / Math.sin(curString.theta);
+			DetectedLine curString = filteredStrings.get(a);
+			double yIntercept = curString.getYIntercept();
 			linesToCluster.put(a, 0, yIntercept);
 		}
 
@@ -131,39 +131,42 @@ public class StringDetector {
 
 		if (filteredStrings.size() == 0)
 		{
-			return new ArrayList<ArrayList<PolarLine>>();
+			return new ArrayList<ArrayList<DetectedLine>>();
 		}
 		
-		
+		//Maybe use compact value it returns IMPORTANT
 		Core.kmeans(linesToCluster, noGroups, clusterLabels, new TermCriteria(TermCriteria.COUNT, 50, 1), 10, Core.KMEANS_RANDOM_CENTERS);
 		
-		ArrayList<ArrayList<PolarLine>> groupedStrings = new ArrayList<ArrayList<PolarLine>>();
+		ArrayList<ArrayList<DetectedLine>> groupedStrings = new ArrayList<ArrayList<DetectedLine>>();
 
 		for(int c = 0; c < noGroups; c++)
 		{
-			groupedStrings.add(new ArrayList<PolarLine>());
+			groupedStrings.add(new ArrayList<DetectedLine>());
 		}
 
 		for(int a = 0; a < filteredStrings.size(); a++)
 		{
 			int group = (int) (clusterLabels.get(a, 0)[0]);
-
-			groupedStrings.get(group).add(filteredStrings.get(a));
+			
+			if ((group >= 0) && (group < groupedStrings.size()) && (a < filteredStrings.size()))
+			{
+				groupedStrings.get(group).add(filteredStrings.get(a));
+			}
 		}
 		
 		return groupedStrings;
 	}
 
-	private ArrayList<PolarLine> selectGuitarString(ArrayList<ArrayList<PolarLine>> groupedStrings)
+	private ArrayList<GuitarString> selectEachGuitarString(ArrayList<ArrayList<DetectedLine>> groupedStrings)
 	{	
 		
-		ArrayList<PolarLine> finalStrings = new ArrayList<PolarLine>();
+		ArrayList<GuitarString> finalStrings = new ArrayList<GuitarString>();
 		
 		for(int b = 0; b < groupedStrings.size(); b++)
 		{
 			ArrayList<Double> rhoValues = new ArrayList<Double>();
 			
-			for(PolarLine s : groupedStrings.get(b))
+			for(DetectedLine s : groupedStrings.get(b))
 			{
 				rhoValues.add((Double) s.rho);
 			}
@@ -171,14 +174,21 @@ public class StringDetector {
 			if (rhoValues.size() > 0)
 			{
 				Collections.sort(rhoValues);
+				
+				double smallestValue = rhoValues.get(0);
+				double largestValue = rhoValues.get(rhoValues.size() - 1);
+				
+				double thickness = largestValue - smallestValue;
 
-				Double middleValue = rhoValues.get((int) Math.floor(rhoValues.size() / 2));
+				double middleValue = rhoValues.get((int) Math.floor(rhoValues.size() / 2));
 
-				for(PolarLine s : groupedStrings.get(b))
+				for(DetectedLine s : groupedStrings.get(b))
 				{
 					if ((double) middleValue == s.rho)
 					{
-						finalStrings.add(s);
+						GuitarString string = new GuitarString(thickness, s);
+						
+						finalStrings.add(string);
 						break;
 					}
 				}

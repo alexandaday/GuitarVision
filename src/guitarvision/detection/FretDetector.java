@@ -15,7 +15,7 @@ public class FretDetector {
 	public double angleAllowance = 1;
 	public int numberFretsToDetect = 20;
 	
-	public ArrayList<PolarLine> getGuitarFrets(Mat image, ArrayList<PolarLine> guitarStrings, EdgeDetector edgeDetector, ImageProcessingOptions processingOptions)
+	public ArrayList<DetectedLine> getGuitarFrets(Mat originalImage, Mat imageToAnnotate, ArrayList<GuitarString> guitarStrings, EdgeDetector edgeDetector, ImageProcessingOptions processingOptions)
 	{
 		if (edgeDetector == null)
 		{
@@ -25,55 +25,78 @@ public class FretDetector {
 			edgeDetector.setHoughThreshold(300);
 		}
 		
-		Mat cannyProcessedImage = edgeDetector.getEdges(image);
+		Mat cannyProcessedImage = edgeDetector.getEdges(originalImage);
 		
 		Mat houghLineParameters = edgeDetector.houghTransform(cannyProcessedImage);
 		
-		ArrayList<PolarLine> initialLines = getLinesFromParameters(houghLineParameters);
+		ArrayList<DetectedLine> initialLines = getLinesFromParameters(houghLineParameters);
 		
-		ArrayList<PolarLine> parallelLines = filterGuitarStrings(initialLines, guitarStrings);
+		ArrayList<DetectedLine> parallelLines = filterGuitarFrets(initialLines, guitarStrings);
 		
 		int noGroups = numberFretsToDetect;
 		
-		ArrayList<ArrayList<PolarLine>> stringGroupings = clusterGuitarStrings(parallelLines, noGroups);
+		ArrayList<ArrayList<DetectedLine>> fretGroupings = clusterGuitarFrets(parallelLines, noGroups);
 		
-		ArrayList<PolarLine> selectedStrings = selectGuitarString(stringGroupings);
+		ArrayList<DetectedLine> selectedFrets = selectEachGuitarFret(fretGroupings);
 		
-		if((processingOptions == ImageProcessingOptions.DRAWSTRINGS) || (processingOptions == ImageProcessingOptions.DRAWGROUPINGS))
+		//Sort based on x intercept
+		
+		Collections.sort(selectedFrets);
+		
+		if((processingOptions == ImageProcessingOptions.DRAWSELECTEDLINES) || (processingOptions == ImageProcessingOptions.DRAWCLUSTERS))
 		{
-			for(PolarLine string : selectedStrings)
+			Scalar colour;
+			int x = 0;
+			for(DetectedLine fret : selectedFrets)
 			{
-				Imgproc.line(image, string.getPoint1(), string.getPoint2(), new Scalar(255,255,255));
+				if (x % 3 == 0)
+				{
+					colour = new Scalar(255,0,0);
+				}
+				else if (x % 3 == 1)
+				{
+					colour = new Scalar(0,255,0);
+				}
+				else if (x % 3 == 2)
+				{
+					colour = new Scalar(0,0,255);
+				}
+				else
+				{
+					colour = new Scalar(255,0,255);
+				}
+				Imgproc.line(imageToAnnotate, fret.getPoint1(), fret.getPoint2(), colour);
+				x++;
 			}
 		}
 		
 		Random randomGenerator = new Random();
 		
-		if(processingOptions == ImageProcessingOptions.DRAWGROUPINGS)
+		if(processingOptions == ImageProcessingOptions.DRAWCLUSTERS)
 		{
-			for(ArrayList<PolarLine> stringGroup: stringGroupings)
+			for(ArrayList<DetectedLine> stringGroup: fretGroupings)
 			{
 				Scalar colour = new Scalar(randomGenerator.nextInt(255),randomGenerator.nextInt(255),randomGenerator.nextInt(255));
 				
-				for(PolarLine string: stringGroup)
+				for(DetectedLine string: stringGroup)
 				{
-					Imgproc.line(image, string.getPoint1(), string.getPoint2(), colour);
+					Imgproc.line(imageToAnnotate, string.getPoint1(), string.getPoint2(), colour);
 				}
 			}
 		}
 		
-		return selectedStrings;
+		return selectedFrets;
 	}
 	
-	private ArrayList<PolarLine> getLinesFromParameters(Mat houghLines)
+	private ArrayList<DetectedLine> getLinesFromParameters(Mat houghLines)
 	{
-		ArrayList<PolarLine> guitarStrings = new ArrayList<PolarLine>();
+		ArrayList<DetectedLine> guitarStrings = new ArrayList<DetectedLine>();
 
 		for (int lineIndex = 0; lineIndex < houghLines.rows(); lineIndex++)
 		{
 			double[] polarLineParameters = houghLines.get(lineIndex, 0);
 
-			PolarLine currentString = new PolarLine(polarLineParameters[0], polarLineParameters[1]);
+			DetectedLine currentString = new DetectedLine(polarLineParameters[0], polarLineParameters[1]);
 
 			guitarStrings.add(currentString);
 		}
@@ -81,12 +104,12 @@ public class FretDetector {
 		return guitarStrings;
 	}
 
-	private ArrayList<PolarLine> filterGuitarStrings(ArrayList<PolarLine> candidateFrets, ArrayList<PolarLine> guitarStrings)
+	private ArrayList<DetectedLine> filterGuitarFrets(ArrayList<DetectedLine> candidateFrets, ArrayList<GuitarString> guitarStrings)
 	{
 		//Strings
 		double totalStringAngle = 0;
 
-		for(PolarLine curString : guitarStrings)
+		for(DetectedLine curString : guitarStrings)
 		{
 			totalStringAngle += curString.theta;
 		}
@@ -98,9 +121,9 @@ public class FretDetector {
 		//Frets
 		//Get only perpendicular strings
 		
-		ArrayList<PolarLine> perpendicularLines = new ArrayList<PolarLine>();
+		ArrayList<DetectedLine> perpendicularLines = new ArrayList<DetectedLine>();
 
-		for(PolarLine curString : candidateFrets)
+		for(DetectedLine curString : candidateFrets)
 		{
 			if ((curString.theta > averageStringAngle + perpendicularAllowance) || (curString.theta < averageStringAngle - perpendicularAllowance))
 			{
@@ -111,14 +134,14 @@ public class FretDetector {
 		//Get parallel frets
 		double totalAngle = 0;
 
-		for(PolarLine curString : perpendicularLines)
+		for(DetectedLine curString : perpendicularLines)
 		{
 			totalAngle += curString.theta;
 		}
 
 		double averageAngle = totalAngle/perpendicularLines.size();
 
-		ArrayList<PolarLine> filteredStrings = new ArrayList<PolarLine>();
+		ArrayList<DetectedLine> filteredStrings = new ArrayList<DetectedLine>();
 
 		if (perpendicularLines.size() > 0)
 		{
@@ -135,14 +158,14 @@ public class FretDetector {
 		return filteredStrings;
 	}
 
-	private ArrayList<ArrayList<PolarLine>> clusterGuitarStrings(ArrayList<PolarLine> filteredStrings, int noGroups)
+	private ArrayList<ArrayList<DetectedLine>> clusterGuitarFrets(ArrayList<DetectedLine> filteredStrings, int noGroups)
 	{
 		//Create matrix to cluster with the y intercepts of all lines
 		Mat linesToCluster = new Mat(filteredStrings.size(), 1, CvType.CV_32F);
 
 		for(int a = 0; a < filteredStrings.size(); a++)
 		{
-			PolarLine curString = filteredStrings.get(a);
+			DetectedLine curString = filteredStrings.get(a);
 			double yIntercept = curString.rho / Math.sin(curString.theta);
 			linesToCluster.put(a, 0, yIntercept);
 		}
@@ -156,39 +179,42 @@ public class FretDetector {
 
 		if (filteredStrings.size() == 0)
 		{
-			return new ArrayList<ArrayList<PolarLine>>();
+			return new ArrayList<ArrayList<DetectedLine>>();
 		}
 		
 		
 		Core.kmeans(linesToCluster, noGroups, clusterLabels, new TermCriteria(TermCriteria.COUNT, 50, 1), 10, Core.KMEANS_RANDOM_CENTERS);
 		
-		ArrayList<ArrayList<PolarLine>> groupedStrings = new ArrayList<ArrayList<PolarLine>>();
+		ArrayList<ArrayList<DetectedLine>> groupedStrings = new ArrayList<ArrayList<DetectedLine>>();
 
 		for(int c = 0; c < noGroups; c++)
 		{
-			groupedStrings.add(new ArrayList<PolarLine>());
+			groupedStrings.add(new ArrayList<DetectedLine>());
 		}
 
 		for(int a = 0; a < filteredStrings.size(); a++)
 		{
 			int group = (int) (clusterLabels.get(a, 0)[0]);
 
-			groupedStrings.get(group).add(filteredStrings.get(a));
+			if ((group >= 0) && (group < groupedStrings.size()) && (a < filteredStrings.size()))
+			{
+				groupedStrings.get(group).add(filteredStrings.get(a));
+			}
 		}
 		
 		return groupedStrings;
 	}
 
-	private ArrayList<PolarLine> selectGuitarString(ArrayList<ArrayList<PolarLine>> groupedStrings)
+	private ArrayList<DetectedLine> selectEachGuitarFret(ArrayList<ArrayList<DetectedLine>> groupedStrings)
 	{	
 		
-		ArrayList<PolarLine> finalStrings = new ArrayList<PolarLine>();
+		ArrayList<DetectedLine> finalStrings = new ArrayList<DetectedLine>();
 		
 		for(int b = 0; b < groupedStrings.size(); b++)
 		{
 			ArrayList<Double> rhoValues = new ArrayList<Double>();
 			
-			for(PolarLine s : groupedStrings.get(b))
+			for(DetectedLine s : groupedStrings.get(b))
 			{
 				rhoValues.add((Double) s.rho);
 			}
@@ -199,7 +225,7 @@ public class FretDetector {
 
 				Double middleValue = rhoValues.get((int) Math.floor(rhoValues.size() / 2));
 
-				for(PolarLine s : groupedStrings.get(b))
+				for(DetectedLine s : groupedStrings.get(b))
 				{
 					if ((double) middleValue == s.rho)
 					{

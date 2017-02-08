@@ -1,8 +1,5 @@
 package guitarvision.gui;
 
-import java.awt.event.KeyListener;
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 
@@ -75,7 +72,7 @@ public class UserInterface extends Application{
 		
 		Button button = new Button();
 		
-		button.setText("Display Original Image");
+		button.setText("Skin Classifier");
 		
 		button.setOnAction(new EventHandler<ActionEvent>()
 		{
@@ -94,7 +91,7 @@ public class UserInterface extends Application{
 		
 		//Slider
 		
-		Slider slider = new Slider(0,1,0.5);
+		slider = new Slider(0,1,0.5);
 		
 		slider.setOnDragDetected(new EventHandler<MouseEvent>()
 		{
@@ -188,7 +185,7 @@ public class UserInterface extends Application{
 						
 						if (file != null)
 						{
-							Engine.getInstance().loadVideo(file);
+							Engine.getInstance().processVideo(file);
 						}
 					}
 				});
