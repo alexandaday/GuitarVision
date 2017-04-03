@@ -15,8 +15,9 @@ public class SheetMusic {
 		notes.add(note);
 	}
 	
-	public void writeFile(String fileName)
+	public File writeFile(String fileName)
 	{
+		File sheetMusicFile = null;
 		try
 		{
 			Sequence midiSequence = new Sequence(javax.sound.midi.Sequence.PPQ, 24);
@@ -47,8 +48,10 @@ public class SheetMusic {
 			MidiEvent finalEvent = new MidiEvent(endMessage, count + 120);
 			midiTrack.add(finalEvent);
 			
+			if (fileName == null) fileName = "GuitarVisionTranscription";
+			
 			//Write file
-			File sheetMusicFile = new File(fileName + ".mid");
+			sheetMusicFile = new File(fileName + ".mid");
 			MidiSystem.write(midiSequence, 1, sheetMusicFile);
 		}
 		catch (InvalidMidiDataException e) {
@@ -58,5 +61,7 @@ public class SheetMusic {
 		{
 			System.out.println(e.getMessage());
 		}
+		
+		return sheetMusicFile;
 	}
 }

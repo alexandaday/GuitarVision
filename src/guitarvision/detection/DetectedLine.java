@@ -113,6 +113,19 @@ public class DetectedLine implements Comparable<DetectedLine>
 		return this.rho / Math.sin(this.theta);
 	}
 	
+	public double getIntercept(Intercept intercept)
+	{
+		switch(intercept)
+		{
+		case XINTERCEPT:
+			return getXIntercept();
+		case YINTERCEPT:
+			return getYIntercept();
+		default:
+			return getXIntercept();
+		}
+	}
+	
 	
 	public Point getCollisionPoint(DetectedLine otherLine)
 	{
@@ -140,14 +153,14 @@ public class DetectedLine implements Comparable<DetectedLine>
 	@Override
 	public int compareTo(DetectedLine otherLine)
 	{
-		double xIntercept = this.rho;//this.getXIntercept();
-		double otherXIntercept = otherLine.rho;//otherLine.getXIntercept();
+		double thisRho = this.rho;//this.getXIntercept();
+		double otherRho = otherLine.rho;//otherLine.getXIntercept();
 		
-		if (xIntercept == otherXIntercept)
+		if (thisRho == otherRho)
 		{
 			return 0;
 		}
-		else if (xIntercept < otherXIntercept)
+		else if (thisRho < otherRho)
 		{
 			return -1;
 		}

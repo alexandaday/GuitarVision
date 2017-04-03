@@ -39,6 +39,8 @@ public class FretDetector {
 		
 		ArrayList<DetectedLine> selectedFrets = selectEachGuitarFret(fretGroupings);
 		
+		ArrayList<DetectedLine> finalFrets = selectedFrets;//edgeDetector.evenlyDistribute(selectedFrets, numberFretsToDetect, Intercept.XINTERCEPT);
+		
 		//Sort based on x intercept
 		
 		Collections.sort(selectedFrets);
@@ -47,7 +49,7 @@ public class FretDetector {
 		{
 			Scalar colour;
 			int x = 0;
-			for(DetectedLine fret : selectedFrets)
+			for(DetectedLine fret : finalFrets)
 			{
 				if (x % 3 == 0)
 				{
@@ -85,7 +87,7 @@ public class FretDetector {
 			}
 		}
 		
-		return selectedFrets;
+		return finalFrets;
 	}
 	
 	private ArrayList<DetectedLine> getLinesFromParameters(Mat houghLines)

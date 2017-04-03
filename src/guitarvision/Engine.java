@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.ArrayList;
 
 import guitarvision.detection.EdgeDetector;
+import guitarvision.detection.FaceDetector;
 import guitarvision.detection.FretDetector;
 import guitarvision.detection.GuitarString;
 import guitarvision.detection.ImageProcessingOptions;
@@ -45,7 +46,7 @@ public class Engine {
 		Imgcodecs.imwrite(fileName, image);
 	}
 	
-	public void processVideo(File videoFile)
+	public ProcessedFiles processVideo(File videoFile, Integer numberFrames, String outputDirectoryName, boolean writeAnnotatedVideo)
 	{
 		VideoCapture guitarVideo = new VideoCapture(videoFile.getPath());
 		
@@ -60,19 +61,33 @@ public class Engine {
 		double fps = guitarVideo.get(Videoio.CAP_PROP_FPS);
 		double codecToUse = guitarVideo.get(Videoio.CAP_PROP_FOURCC);
 		
-		String outputFileName = name +"_processed"+extension;
+		String outputVideoFileNameWithExtension;
+		String outputMidiFileName;
 		
-		File outputFile = new File(outputFileName);
+		if (!(outputDirectoryName == null))
+		{
+			 outputVideoFileNameWithExtension = outputDirectoryName + "/" + name + "_processed"+extension;
+			 outputMidiFileName = outputDirectoryName + "/" + name;
+		}
+		else 
+		{
+			outputVideoFileNameWithExtension = name + "_processed"+extension;
+			outputMidiFileName = name;
+		}
+		
+		File outputFile = new File(outputVideoFileNameWithExtension);
 		
 		if (outputFile.exists()) outputFile.delete();
 		
-		VideoWriter outputVideo = new VideoWriter(outputFileName, (int)codecToUse, fps, new Size(width,height), true);
+		VideoWriter outputVideo = new VideoWriter(outputVideoFileNameWithExtension, (int)codecToUse, fps, new Size(width,height), true);
 		
 		int frameNo = 0;
 		
 		EdgeDetector edgeDetector = new EdgeDetector();
-		edgeDetector.setCannyUpperThreshold(200);
-		edgeDetector.setHoughThreshold(300);
+		edgeDetector.setCannyUpperThreshold(180);
+		edgeDetector.setHoughThreshold(470);
+		//edgeDetector.setCannyUpperThreshold(200);
+		//edgeDetector.setHoughThreshold(300);
 		
 		EdgeDetector fretEdgeDetector = new EdgeDetector();
 		fretEdgeDetector.setCannyLowerThreshold(0);
@@ -91,6 +106,11 @@ public class Engine {
 		
 		
 		SheetMusic transcribedMusic = new SheetMusic();
+		
+		if (numberFrames == null)
+		{
+			numberFrames = 150;
+		}
 //		
 //		Store Thickness of string in Polar line class - maybe rename?
 		
@@ -110,8 +130,12 @@ public class Engine {
 		{
 			frameToAnnotate =  currentFrame.clone();
 			
-			ArrayList<GuitarString> guitarStrings = stringDetector.getGuitarStrings(currentFrame, frameToAnnotate, edgeDetector, ImageProcessingOptions.DRAWCLUSTERS);
-			ArrayList<DetectedLine> guitarFrets = fretDetector.getGuitarFrets(currentFrame, frameToAnnotate, guitarStrings, fretEdgeDetector, ImageProcessingOptions.DRAWCLUSTERS);
+			FaceDetector faceDetector = new FaceDetector();
+			
+			frameToAnnotate = faceDetector.getFaces(frameToAnnotate);
+			
+			ArrayList<GuitarString> guitarStrings = stringDetector.getGuitarStrings(currentFrame, frameToAnnotate, edgeDetector, ImageProcessingOptions.DRAWSELECTEDLINES);
+			ArrayList<DetectedLine> guitarFrets = fretDetector.getGuitarFrets(currentFrame, frameToAnnotate, guitarStrings, fretEdgeDetector, ImageProcessingOptions.DRAWSELECTEDLINES);
 
 			if (!firstFrame)
 			{
@@ -177,16 +201,21 @@ public class Engine {
 				pluckDetector = new PluckDetector(guitarStrings);
 				firstFrame = false;
 			}
-
-			outputVideo.write(frameToAnnotate);
+			if (writeAnnotatedVideo)
+			{
+				outputVideo.write(frameToAnnotate);
+			}
 			frameNo++;
-			if (frameNo >= 350) break;
+			if ((numberFrames!= null) && (frameNo >= numberFrames)) break;
 		}
 		
 		guitarVideo.release();
-		outputVideo.release();
+		if (writeAnnotatedVideo)
+		{
+			outputVideo.release();
+		}
 		
-		transcribedMusic.writeFile("test");
+		File midiFile = transcribedMusic.writeFile(outputMidiFileName);
 		
 		//Process first frame
 		//Using altering canny upper and hough threshold
@@ -195,7 +224,11 @@ public class Engine {
 		
 		//Then then interpolate for missing strings
 		
+		ProcessedFiles results = new ProcessedFiles(outputFile, midiFile);
+		
 		System.out.println("DONE");
+		
+		return results;
 	}
 	
 	//Variables and Methods for development/testing
@@ -212,7 +245,7 @@ public class Engine {
 //		
 //		return skinDetector.getSkin(image);
 		
-		return getProcessedImage(100, 255, false);
+		return getProcessedImage(72, 470, false);
 		
 	}
 	
@@ -234,7 +267,7 @@ public class Engine {
 		{
 			StringDetector stringDetector = new StringDetector();
 			
-			ArrayList<GuitarString> guitarStrings = stringDetector.getGuitarStrings(imageToProcess, imageToAnnotate, edgeDetector, ImageProcessingOptions.NOPROCESSING);
+			ArrayList<GuitarString> guitarStrings = stringDetector.getGuitarStrings(imageToProcess, imageToAnnotate, edgeDetector, ImageProcessingOptions.DRAWSELECTEDLINES);
 			
 			FretDetector fretDetector = new FretDetector();
 			EdgeDetector fretEdgeDetector = new EdgeDetector();
@@ -242,13 +275,26 @@ public class Engine {
 			fretEdgeDetector.setCannyUpperThreshold(255);
 			fretEdgeDetector.setHoughThreshold(75);
 			
-			ArrayList<DetectedLine> guitarFrets = fretDetector.getGuitarFrets(imageToProcess, imageToAnnotate, guitarStrings,fretEdgeDetector,ImageProcessingOptions.NOPROCESSING);
+			ArrayList<DetectedLine> guitarFrets = fretDetector.getGuitarFrets(imageToProcess, imageToAnnotate, guitarStrings,fretEdgeDetector, ImageProcessingOptions.DRAWSELECTEDLINES);
 			
 			SkinDetector skinDetector = new SkinDetector();
 			
 			Mat skin = skinDetector.getSkin(imageToProcess);
 			
+			Mat skinGrey = new Mat();
+			
+			Imgproc.cvtColor(skin, skinGrey, Imgproc.COLOR_RGB2GRAY);
+			
+			Mat components = new Mat();
+			
+			System.out.println("Number of labels " + Integer.toString(Imgproc.connectedComponents(skinGrey, components)));
+			
 			Core.addWeighted(imageToProcess, 0.6, skin, 0.4, 1.0, imageToProcess);
+			
+			FaceDetector faceDetector = new FaceDetector();
+			
+			imageToAnnotate = faceDetector.getFaces(imageToAnnotate);
+			
 			
 			NoteDetector noteDetector = new NoteDetector();
 			
@@ -264,8 +310,14 @@ public class Engine {
 					System.out.println(notePlayed.note);
 				}
 			}
-			
 		}
-		return imageToProcess;
+		
+		//Perform system test temporarily here
+		
+		PerformanceTest performanceTest = new PerformanceTest();
+		
+		performanceTest.compareToManualTranscriptions();
+		
+		return imageToAnnotate;
 	}
 }

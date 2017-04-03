@@ -37,11 +37,14 @@ public class StringDetector {
 		
 		ArrayList<ArrayList<DetectedLine>> stringGroupings = clusterGuitarStrings(parallelLines, noGroups);
 		
-		ArrayList<GuitarString> selectedStrings = selectEachGuitarString(stringGroupings);
+		ArrayList<DetectedLine> selectedStrings = selectEachGuitarString(stringGroupings);
+		
+		ArrayList<DetectedLine> finalStrings = selectedStrings;//= edgeDetector.evenlyDistribute(selectedStrings, 6, Intercept.YINTERCEPT);
+		
 		
 		if((processingOptions == ImageProcessingOptions.DRAWSELECTEDLINES) || (processingOptions == ImageProcessingOptions.DRAWCLUSTERS))
 		{
-			for(DetectedLine string : selectedStrings)
+			for(DetectedLine string : finalStrings)
 			{
 				Imgproc.line(imageToAnnotate, string.getPoint1(), string.getPoint2(), new Scalar(255,255,255));
 			}
@@ -63,7 +66,17 @@ public class StringDetector {
 			}
 		}
 		
-		return selectedStrings;
+		ArrayList<GuitarString> guitarStringsFinal = new ArrayList<GuitarString>();
+		
+		for(DetectedLine l : finalStrings)
+		{
+			if (l instanceof GuitarString)
+			{
+				guitarStringsFinal.add((GuitarString) l);
+			}
+		}
+		
+		return guitarStringsFinal;
 	}
 	
 	private ArrayList<DetectedLine> getLinesFromParameters(Mat houghLines)
@@ -157,10 +170,10 @@ public class StringDetector {
 		return groupedStrings;
 	}
 
-	private ArrayList<GuitarString> selectEachGuitarString(ArrayList<ArrayList<DetectedLine>> groupedStrings)
+	private ArrayList<DetectedLine> selectEachGuitarString(ArrayList<ArrayList<DetectedLine>> groupedStrings)
 	{	
 		
-		ArrayList<GuitarString> finalStrings = new ArrayList<GuitarString>();
+		ArrayList<DetectedLine> finalStrings = new ArrayList<DetectedLine>();
 		
 		for(int b = 0; b < groupedStrings.size(); b++)
 		{

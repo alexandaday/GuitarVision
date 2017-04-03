@@ -185,7 +185,7 @@ public class UserInterface extends Application{
 						
 						if (file != null)
 						{
-							Engine.getInstance().processVideo(file);
+							Engine.getInstance().processVideo(file, 150, null, true);
 						}
 					}
 				});
