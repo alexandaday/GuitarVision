@@ -15,7 +15,7 @@ public class PerformanceTest {
 	
 	String outputDirectoryName = "test_output";
 	
-	String outputFile = "test_stats.txt";
+	String outputFile = "test_stats.cvs";
 	
 	BufferedWriter outputWriter;
 	
@@ -33,7 +33,7 @@ public class PerformanceTest {
 	
 	public File getOutputFile()
 	{
-		String outputPath = getDirectory(outputDirectoryName).getPath() + "/" + outputFile;
+		String outputPath = getDirectory(outputDirectoryName).getPath() + java.io.File.separator + outputFile;
 		
 		File outputFile = new File(outputPath);
 		
@@ -96,6 +96,8 @@ public class PerformanceTest {
 		
 		File outputDirectory = getDirectory(outputDirectoryName);
 		
+		writeOutput(MusicStatistics.tableHeader);
+		
 		for(String directory : eachVideoDirectory)
 		{
 			System.out.println("directory is ");
@@ -105,7 +107,7 @@ public class PerformanceTest {
 			
 			File correspondingMIDIFile = new File(sampleMIDIDirectory+directory+".mid");
 			
-			File outputPieceDirectory = getDirectory(outputDirectory.getPath() + "/" + directory);
+			File outputPieceDirectory = getDirectory(outputDirectory.getPath() + java.io.File.separator + directory);
 			
 			String[] eachVideoAddress = curDirectory.list(new FilenameFilter() {
 				
@@ -121,12 +123,12 @@ public class PerformanceTest {
 				
 				//Make into directory structure!
 				//Create directory
-				String outputMidi = outputPieceDirectory.getPath();// + "/" + videoAdress.substring(0, videoAdress.indexOf("."));
+				String outputMidi = outputPieceDirectory.getPath();// + java.io.File.separator + videoAdress.substring(0, videoAdress.indexOf("."));
 				
 				System.out.println("FOUND VIDEO");
-				System.out.println(sampleVideoDirectory + directory + "/" + videoAdress);
+				System.out.println(sampleVideoDirectory + directory + java.io.File.separator + videoAdress);
 				
-				File videoFile = new File(sampleVideoDirectory + directory + "/" + videoAdress);
+				File videoFile = new File(sampleVideoDirectory + directory + java.io.File.separator + videoAdress);
 
 				ProcessedFiles files = Engine.getInstance().processVideo(videoFile, 10, outputMidi, false);
 				
@@ -171,12 +173,12 @@ public class PerformanceTest {
 	
 	public void compareMIDIFiles(File actualTranscription, File systemTranscription)
 	{
-		writeOutput("Test: " + systemTranscription.getAbsolutePath());
+		//writeOutput("Test: " + systemTranscription.getAbsolutePath());
 		
 		SheetComparator musicCompare = new SheetComparator();
 		
 		MusicStatistics stats = musicCompare.compareFiles(actualTranscription, systemTranscription);
 		
-		writeOutput(stats.textDump());
+		writeOutput(stats.tableRecordText());
 	}
 }

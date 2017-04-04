@@ -1,10 +1,14 @@
 package guitarvision.sheetmusic;
 
 public class MusicStatistics {
-	public double proportionNotes;
+	public static String tableHeader = "Name,Proportion of notes detected,Accuracy alignment score";
 	
-	public String textDump()
+	public String name;
+	public double proportionNotes;
+	public int alignmentScore;
+	
+	public String tableRecordText()
 	{
-		return "Proportion of Notes Detected: "+proportionNotes;
+		return name+","+proportionNotes+","+alignmentScore;
 	}
 }

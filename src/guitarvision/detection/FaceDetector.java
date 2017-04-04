@@ -1,5 +1,7 @@
 package guitarvision.detection;
 
+import java.net.URL;
+
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfRect;
 import org.opencv.core.Rect;
@@ -10,17 +12,22 @@ import org.opencv.objdetect.CascadeClassifier;
 public class FaceDetector {
 	public Mat getFaces(Mat image)
 	{
-		CascadeClassifier classifier = new CascadeClassifier(getClass().getResource("haarcascade_frontalface_alt.xml").getPath());
-		
-		MatOfRect faces = new MatOfRect();
-		
-		classifier.detectMultiScale(image, faces);
+		URL classifierData = getClass().getResource("haarcascade_frontalface_alt.xml");
 		
 		Mat result = image.clone();
 		
-		for(Rect face: faces.toArray())
+		if (classifierData != null)
 		{
-			Imgproc.rectangle(image, face.tl(), face.br(), new Scalar(255,255,255));
+			CascadeClassifier classifier = new CascadeClassifier(classifierData.getPath());
+
+			MatOfRect faces = new MatOfRect();
+
+			classifier.detectMultiScale(image, faces);
+
+			for(Rect face: faces.toArray())
+			{
+				Imgproc.rectangle(image, face.tl(), face.br(), new Scalar(255,255,255));
+			}
 		}
 		
 		return result;

@@ -66,8 +66,8 @@ public class Engine {
 		
 		if (!(outputDirectoryName == null))
 		{
-			 outputVideoFileNameWithExtension = outputDirectoryName + "/" + name + "_processed"+extension;
-			 outputMidiFileName = outputDirectoryName + "/" + name;
+			 outputVideoFileNameWithExtension = outputDirectoryName + java.io.File.separator + name + "_processed"+extension;
+			 outputMidiFileName = outputDirectoryName + java.io.File.separator + name;
 		}
 		else 
 		{
