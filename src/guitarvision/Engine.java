@@ -41,12 +41,18 @@ public class Engine {
 	
 	public void exportImage(Mat image, String fileName)
 	{
-		//System.out.println("Exporting: " + fileName);
-		
 		Imgcodecs.imwrite(fileName, image);
 	}
 	
-	public ProcessedFiles processVideo(File videoFile, Integer numberFrames, String outputDirectoryName, boolean writeAnnotatedVideo)
+	/**
+	 * The core method of the project, produces MIDI transcriptions from videos
+	 * @param videoFile - the address of the video to process
+	 * @param numberFrames - the number of frames from the video to process
+	 * @param outputDirectoryName - relative path to place the video file
+	 * @param writeAnnotatedVideo - whether to produce a video showing the detection modules and processing 
+	 * @return Object containing references to the generated MIDI and video files
+	 */
+	public ProcessedFiles transcribeFromVideo(File videoFile, Integer numberFrames, String outputDirectoryName, boolean writeAnnotatedVideo)
 	{
 		VideoCapture guitarVideo = new VideoCapture(videoFile.getPath());
 		
@@ -61,28 +67,33 @@ public class Engine {
 		double fps = guitarVideo.get(Videoio.CAP_PROP_FPS);
 		double codecToUse = guitarVideo.get(Videoio.CAP_PROP_FOURCC);
 		
-		String outputVideoFileNameWithExtension;
-		String outputMidiFileName;
+		//Determine the names and relative paths of the output files
+		String outputVideoFileNameWithExtension = "";
+		String outputMidiFileName = "";
 		
 		if (!(outputDirectoryName == null))
 		{
-			 outputVideoFileNameWithExtension = outputDirectoryName + java.io.File.separator + name + "_processed"+extension;
-			 outputMidiFileName = outputDirectoryName + java.io.File.separator + name;
+			 outputVideoFileNameWithExtension += outputDirectoryName + java.io.File.separator;
+			 outputMidiFileName += outputDirectoryName + java.io.File.separator;
 		}
-		else 
-		{
-			outputVideoFileNameWithExtension = name + "_processed"+extension;
-			outputMidiFileName = name;
-		}
+
+		outputVideoFileNameWithExtension += name + "_processed"+extension;
+		outputMidiFileName += name;
 		
 		File outputFile = new File(outputVideoFileNameWithExtension);
 		
 		if (outputFile.exists()) outputFile.delete();
 		
-		VideoWriter outputVideo = new VideoWriter(outputVideoFileNameWithExtension, (int)codecToUse, fps, new Size(width,height), true);
+		VideoWriter outputVideo = null;
+		
+		if (writeAnnotatedVideo)
+		{
+			outputVideo = new VideoWriter(outputVideoFileNameWithExtension, (int)codecToUse, fps, new Size(width,height), true);
+		}
 		
 		int frameNo = 0;
 		
+		//Gather and set up the required detection objects
 		EdgeDetector edgeDetector = new EdgeDetector();
 		edgeDetector.setCannyUpperThreshold(180);
 		edgeDetector.setHoughThreshold(470);
@@ -109,7 +120,7 @@ public class Engine {
 		
 		if (numberFrames == null)
 		{
-			numberFrames = 150;
+			numberFrames = 25;
 		}
 //		
 //		Store Thickness of string in Polar line class - maybe rename?
@@ -226,7 +237,7 @@ public class Engine {
 		
 		ProcessedFiles results = new ProcessedFiles(outputFile, midiFile);
 		
-		System.out.println("DONE");
+		System.out.println("Processing Complete");
 		
 		return results;
 	}
@@ -234,20 +245,6 @@ public class Engine {
 	//Variables and Methods for development/testing
 	
 	private String fileName = "../images/guitar.png";
-	
-	public Mat getOriginalImage()
-	{	
-//		Mat image = Imgcodecs.imread(getClass().getResource("../images/plucking.png").getPath());
-//		
-//		//Skin Classifier
-//		
-//		SkinDetector skinDetector = new SkinDetector();
-//		
-//		return skinDetector.getSkin(image);
-		
-		return getProcessedImage(72, 470, false);
-		
-	}
 	
 	public Mat getProcessedImage(int argument, int argument2, boolean showEdges)
 	{	
@@ -311,12 +308,6 @@ public class Engine {
 				}
 			}
 		}
-		
-		//Perform system test temporarily here
-		
-		PerformanceTest performanceTest = new PerformanceTest();
-		
-		performanceTest.compareToManualTranscriptions();
 		
 		return imageToAnnotate;
 	}

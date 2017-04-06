@@ -8,12 +8,15 @@ import org.opencv.core.MatOfByte;
 import org.opencv.imgcodecs.Imgcodecs;
 
 import guitarvision.Engine;
+import guitarvision.PerformanceTest;
 import javafx.application.Application;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
 import javafx.scene.control.CheckBox;
+import javafx.scene.control.Alert.AlertType;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
@@ -24,11 +27,16 @@ import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 
 public class UserInterface extends Application{
-	private Slider slider;
-	private Slider slider2;
-	private CheckBox checkBox;
+	//Dialog box
+	private Alert alert = new Alert(AlertType.INFORMATION);
+	
+	private Slider sliderCanny;
+	private Slider sliderHough;
+	private CheckBox checkBoxEdges;
 	
 	private ImageView imageView;
 	
@@ -39,172 +47,199 @@ public class UserInterface extends Application{
 	@Override
 	public void start(Stage stage)
 	{
-		////Development window
-		stage.setTitle("GuitarVision Development");
+		//****Testing window****
+		
+		stage.setTitle("GuitarVision Testing");
 		
 		StackPane root = new StackPane();
+		root.setAlignment(Pos.TOP_CENTER);
 		
 		VBox verticalLayout = new VBox();
+		verticalLayout.setAlignment(Pos.TOP_CENTER);
 		
 		root.getChildren().add(verticalLayout);
 		
-		//ImageView
-		
 		imageView = new ImageView();
-		
 		imageView.setFitHeight(500);
-		
 		imageView.setPreserveRatio(true);
 		
-		//Labels
+		Label labelCanny = new Label();
+		labelCanny.setText("Canny Upper Threshold");
+		Label labelHough = new Label();
+		labelHough.setText("Hough Threshold");
 		
-		Label label1 = new Label();
-		label1.setText("Canny Upper Threshold");
-		Label label2 = new Label();
-		label2.setText("Hough Threshold");
+		Label valueCanny = new Label();
+		valueCanny.setText("");
+		Label valueHough = new Label();
+		valueHough.setText("");
 		
-		Label value1 = new Label();
-		value1.setText("");
-		Label value2 = new Label();
-		value2.setText("");
-		
-		//Button
-		
-		Button button = new Button();
-		
-		button.setText("Skin Classifier");
-		
-		button.setOnAction(new EventHandler<ActionEvent>()
+		Button buttonTest = new Button();
+		buttonTest.setText("Performance Test");
+		buttonTest.setOnAction(new EventHandler<ActionEvent>()
 		{
 			@Override
 			public void handle(ActionEvent event)
 			{
-				Mat image = Engine.getInstance().getOriginalImage();
+				Thread processingThread = new Thread(new Runnable() {
+					public void run()
+					{
+						PerformanceTest performanceTest = new PerformanceTest();
+						
+						performanceTest.compareToManualTranscriptions();
+					}
+				});
 				
-				MatOfByte imageBuffer = new MatOfByte();
-				
-				Imgcodecs.imencode(".png", image, imageBuffer);
-				
-				imageView.setImage(new Image(new ByteArrayInputStream(imageBuffer.toArray())));
+				processingThread.start();
 			}
 		});
 		
-		//Slider
-		
-		slider = new Slider(0,1,0.5);
-		
-		slider.setOnDragDetected(new EventHandler<MouseEvent>()
+		sliderCanny = new Slider(0,1,0.5);
+		sliderCanny.setOnDragDetected(new EventHandler<MouseEvent>()
 		{
 			@Override
 			public void handle(MouseEvent event)
 			{
-				int intValue = processSliderValue(slider.getValue());
-				int intValue2 = processSliderValue(slider2.getValue());
-				value1.setText(Integer.toString(intValue));
-				updateTestingImage(intValue, intValue2, checkBox.isSelected());
+				int intValue = processSliderValue(sliderCanny.getValue());
+				int intValue2 = processSliderValue(sliderHough.getValue());
+				valueCanny.setText(Integer.toString(intValue));
+				updateImageWithNewParameters(intValue, intValue2, checkBoxEdges.isSelected());
 			}
 		});
 		
-		//Slider2
-		slider2 = new Slider(0,1,0.5);
-		
-		slider2.setOnDragDetected(new EventHandler<MouseEvent>()
+		sliderHough = new Slider(0,1,0.5);
+		sliderHough.setOnDragDetected(new EventHandler<MouseEvent>()
 		{
 			@Override
 			public void handle(MouseEvent event)
 			{
-				int intValue = processSliderValue(slider.getValue());
-				int intValue2 = processSliderValue(slider2.getValue());
-				value2.setText(Integer.toString(intValue2));
-				updateTestingImage(intValue, intValue2, checkBox.isSelected());
+				int intValue = processSliderValue(sliderCanny.getValue());
+				int intValue2 = processSliderValue(sliderHough.getValue());
+				valueHough.setText(Integer.toString(intValue2));
+				updateImageWithNewParameters(intValue, intValue2, checkBoxEdges.isSelected());
 			}
 		});
 		
-		checkBox = new javafx.scene.control.CheckBox();
-		
-		checkBox.setText("Show Edges");
-		
-		checkBox.setOnAction(new EventHandler<ActionEvent>()
+		checkBoxEdges = new javafx.scene.control.CheckBox();
+		checkBoxEdges.setText("Show Edges");
+		checkBoxEdges.setOnAction(new EventHandler<ActionEvent>()
 		{
 			@Override
 			public void handle(ActionEvent event)
 			{
-				int intValue = processSliderValue(slider.getValue());
-				int intValue2 = processSliderValue(slider2.getValue());
-				updateTestingImage(intValue, intValue2, checkBox.isSelected());
+				int intValue = processSliderValue(sliderCanny.getValue());
+				int intValue2 = processSliderValue(sliderHough.getValue());
+				updateImageWithNewParameters(intValue, intValue2, checkBoxEdges.isSelected());
 			}
 		});
-		
+
 		HBox horizontalLayout = new HBox();
 		HBox horizontalLayout2 = new HBox();
+		horizontalLayout.setAlignment(Pos.CENTER);
+		horizontalLayout2.setAlignment(Pos.CENTER);
 		
-		horizontalLayout.getChildren().add(label1);
-		horizontalLayout.getChildren().add(slider);
-		horizontalLayout.getChildren().add(value1);
+		horizontalLayout.getChildren().add(labelCanny);
+		horizontalLayout.getChildren().add(sliderCanny);
+		horizontalLayout.getChildren().add(valueCanny);
 		
-		horizontalLayout2.getChildren().add(label2);
-		horizontalLayout2.getChildren().add(slider2);
-		horizontalLayout2.getChildren().add(value2);
+		horizontalLayout2.getChildren().add(labelHough);
+		horizontalLayout2.getChildren().add(sliderHough);
+		horizontalLayout2.getChildren().add(valueHough);
 		
-		verticalLayout.getChildren().add(button);
-		verticalLayout.getChildren().add(checkBox);
+		verticalLayout.getChildren().add(buttonTest);
+		verticalLayout.getChildren().add(checkBoxEdges);
 		verticalLayout.getChildren().add(horizontalLayout);
 		verticalLayout.getChildren().add(horizontalLayout2);
 		verticalLayout.getChildren().add(imageView);
 		
+		//Initialise the window
+		double initialCannySliderValue = 0.072;
+		double initialHoughSliderValue = 0.470;
+		
+		int intValue1 = processSliderValue(initialCannySliderValue);
+		int intValue2 = processSliderValue(initialHoughSliderValue);
+		
+		valueCanny.setText(Integer.toString(intValue1));
+		valueHough.setText(Integer.toString(intValue2));
+		
+		updateImageWithNewParameters(intValue1, intValue2, false);
+		
+		sliderCanny.setValue(initialCannySliderValue);
+		sliderHough.setValue(initialHoughSliderValue);
+		
+		//Display the window
 		stage.setScene(new Scene(root, 1000, 600));
 		stage.show();
 		
-		////Second window
+		//****Simple user window****
 		
-		Stage userWindow = new Stage();
+		Stage simpleWindow = new Stage();
 		
-		StackPane userRoot = new StackPane();
+		StackPane simpleRoot = new StackPane();
 		
 		//Video Picker
-		
 		FileChooser filePicker = new FileChooser();
 		filePicker.setTitle("Open Guitar Video");
 		filePicker.getExtensionFilters().addAll(
                 new FileChooser.ExtensionFilter("MP4", "*.mp4"),
-                new FileChooser.ExtensionFilter("M4V", "*.m4v")
+                new FileChooser.ExtensionFilter("M4V", "*.m4v"),
+                new FileChooser.ExtensionFilter("MOV", "*.mov")
         );
 		
 		//Load Video Button
-		
-		Button buttonLoadVid = new Button();
-				
-		buttonLoadVid.setText("Load Video");
-		
-		buttonLoadVid.setOnAction(new EventHandler<ActionEvent>()
+		Button buttonLoadVideo = new Button();
+		buttonLoadVideo.setText("Load Video");
+		buttonLoadVideo.setOnAction(new EventHandler<ActionEvent>()
+		{
+			@Override
+			public void handle(ActionEvent event)
+			{
+				File file = filePicker.showOpenDialog(simpleWindow);
+
+				if (file != null)
 				{
-					@Override
-					public void handle(ActionEvent event)
-					{
-						File file = filePicker.showOpenDialog(userWindow);
-						
-						if (file != null)
+					Thread processingThread = new Thread(new Runnable() {
+						public void run()
 						{
-							Engine.getInstance().processVideo(file, 150, null, true);
+							Engine.getInstance().transcribeFromVideo(file, null, null, true);
 						}
-					}
-				});
+					});
+					
+					processingThread.start();
+				}
+			}
+		});
 		
-		userRoot.getChildren().add(buttonLoadVid);
+		simpleRoot.getChildren().add(buttonLoadVideo);
+		simpleRoot.setPadding(new Insets(50,50,50,50));
 		
-		userWindow.setTitle("GuitarVision");
-		userWindow.setScene(new Scene(userRoot, 400, 400));
-		userWindow.show();
+		simpleWindow.setTitle("GuitarVision");
+		simpleWindow.setScene(new Scene(simpleRoot));
+		simpleWindow.show();
+	}
+	
+	public void displayDialogMessage(String text, String title)
+	{
+		if (title == null)
+		{
+			title = "Information";
+		}
+		
+		alert.setTitle(title);
+		alert.setHeaderText(null);
+		alert.setContentText(text);
+		
+		alert.showAndWait();
 	}
 	
 	public int processSliderValue(double value)
 	{
+		//Scale the 0-1 slider value for use as Canny/Hough parameter values
 		return (int) (value * 1000);
 	}
 	
-	public void updateTestingImage(int argument, int argument2, boolean showEdges)
+	public void updateImageWithNewParameters(int argumentCanny, int argumentHough, boolean showEdges)
 	{		
-		Mat image = Engine.getInstance().getProcessedImage(argument, argument2, showEdges);
+		Mat image = Engine.getInstance().getProcessedImage(argumentCanny, argumentHough, showEdges);
 		
 		MatOfByte imageBuffer = new MatOfByte();
 		

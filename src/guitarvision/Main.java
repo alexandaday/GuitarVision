@@ -13,6 +13,7 @@ public class Main
 
 		System.out.println("OpenCV Loaded");
 		
+		//Launch GUI
 		UserInterface.launchInterface(args);
 	}
 }
