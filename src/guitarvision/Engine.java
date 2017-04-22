@@ -47,16 +47,17 @@ public class Engine {
 	/**
 	 * The core method of the project, produces MIDI transcriptions from videos
 	 * @param videoFile - the address of the video to process
-	 * @param numberFrames - the number of frames from the video to process
+	 * @param numberFramesToProcess - the number of frames from the video to process
 	 * @param outputDirectoryName - relative path to place the video file
 	 * @param writeAnnotatedVideo - whether to produce a video showing the detection modules and processing 
 	 * @return Object containing references to the generated MIDI and video files
 	 */
-	public ProcessedFiles transcribeFromVideo(File videoFile, Integer numberFrames, String outputDirectoryName, boolean writeAnnotatedVideo)
+	public ProcessedFiles transcribeFromVideo(File videoFile, Integer numberFramesToProcess, String outputDirectoryName, boolean writeAnnotatedVideo)
 	{
 		VideoCapture guitarVideo = new VideoCapture(videoFile.getPath());
 		
 		Mat currentFrame = new Mat();
+		Mat frameToAnnotate = null;
 		
 		String fileName = videoFile.getName();
 		String name = fileName.substring(0, fileName.lastIndexOf("."));
@@ -97,8 +98,6 @@ public class Engine {
 		EdgeDetector edgeDetector = new EdgeDetector();
 		edgeDetector.setCannyUpperThreshold(180);
 		edgeDetector.setHoughThreshold(470);
-		//edgeDetector.setCannyUpperThreshold(200);
-		//edgeDetector.setHoughThreshold(300);
 		
 		EdgeDetector fretEdgeDetector = new EdgeDetector();
 		fretEdgeDetector.setCannyLowerThreshold(0);
@@ -109,24 +108,23 @@ public class Engine {
 		
 		FretDetector fretDetector = new FretDetector();
 		
+		//To be initialised once the thickness of the strings has been determined
 		PluckDetector pluckDetector = null;
 		
 		SkinDetector skinDetector = new SkinDetector();
 		
 		NoteDetector noteDetector = new NoteDetector();
 		
-		
 		SheetMusic transcribedMusic = new SheetMusic();
 		
-		if (numberFrames == null)
+		if (numberFramesToProcess == null)
 		{
-			numberFrames = 25;
+			numberFramesToProcess = 50;
 		}
-//		
-//		Store Thickness of string in Polar line class - maybe rename?
-		
+
 		boolean firstFrame = true;
 		
+		//List tracking which strings are currently being played in the frame
 		ArrayList<MusicNote> currentlyHeldNotes = new ArrayList<MusicNote>();
 		
 		for(int x = 0; x < StringDetector.numberStringsToDetect; x++)
@@ -134,9 +132,7 @@ public class Engine {
 			currentlyHeldNotes.add(null);
 		}
 		
-		Mat frameToAnnotate;
-		
-		//Process remaining frames
+		//Process frames one by one
 		while (guitarVideo.read(currentFrame))
 		{
 			frameToAnnotate =  currentFrame.clone();
@@ -145,22 +141,26 @@ public class Engine {
 			
 			frameToAnnotate = faceDetector.getFaces(frameToAnnotate);
 			
+			//METHOD OF TURNING ON AND OFF DETECTION STAGES TO TRY AND IMPROVE SPEED
+			//GIVE USER FEEDBACK AND IMPROVE DETECTION
+			
+			//Detect strings and frest in frame
 			ArrayList<GuitarString> guitarStrings = stringDetector.getGuitarStrings(currentFrame, frameToAnnotate, edgeDetector, ImageProcessingOptions.DRAWSELECTEDLINES);
 			ArrayList<DetectedLine> guitarFrets = fretDetector.getGuitarFrets(currentFrame, frameToAnnotate, guitarStrings, fretEdgeDetector, ImageProcessingOptions.DRAWSELECTEDLINES);
 
+			Mat skin = skinDetector.getSkin(currentFrame);
+			
+			Core.addWeighted(frameToAnnotate, 0.6, skin, 0.4, 1.0, frameToAnnotate);
+			
+			//Processing of frames after the first frame
 			if (!firstFrame)
 			{
-				//Recallibrate if better frame
-				if (pluckDetector.initialStrings.size() == 0 && guitarStrings.size() == StringDetector.numberStringsToDetect)
+				//Re-calibrate pluck detector if frame used didn't detect all guitar strings
+				if (pluckDetector.initialStrings.size() < StringDetector.numberStringsToDetect && guitarStrings.size() > pluckDetector.initialStrings.size())
 				{
 					pluckDetector.initialStrings = guitarStrings;
 				}
-				
-				Mat skin = skinDetector.getSkin(currentFrame);
-				
-				
-				Core.addWeighted(frameToAnnotate, 0.6, skin, 0.4, 1.0, frameToAnnotate);
-				
+
 				boolean[] stringsPlayed = pluckDetector.detectStringsBeingPlayed(guitarStrings);
 				
 				if (stringsPlayed != null)
@@ -169,15 +169,14 @@ public class Engine {
 					{
 						if (stringsPlayed[x] && currentlyHeldNotes.get(x) == null)
 						{
-							//create note
-
+							//Create new note object
 							MusicNote notePlayed = noteDetector.getNote(currentFrame, frameNo, skin, x, guitarStrings, guitarFrets);
 
 							currentlyHeldNotes.set(x, notePlayed);
 						}
 						else if (!stringsPlayed[x] && currentlyHeldNotes.get(x) != null)
 						{
-							//finish note
+							//Finish note as it is no longer vibrating
 							MusicNote currentNote = currentlyHeldNotes.get(x);
 
 							currentNote.setEndingFrame(frameNo);
@@ -188,36 +187,44 @@ public class Engine {
 						}
 					}
 				}
-				
-				int scaleFactor = 12;
-				if (stringsPlayed == null) stringsPlayed = new boolean[StringDetector.numberStringsToDetect];
-				
-				for(int x = 0; x < StringDetector.numberStringsToDetect; x++)
-				{
-					int fret = 0;
-					if (currentlyHeldNotes.get(x) != null)
-					{
-						MusicNote note = currentlyHeldNotes.get(x);
-						fret = note.note;
-					}
 
-					Imgproc.putText(frameToAnnotate, "String "+Integer.toString(x)+": " + stringsPlayed[x] , new Point((currentFrame.rows() / scaleFactor) * 1 ,(currentFrame.cols() / (scaleFactor)) * (x+1)), Core.FONT_ITALIC, 2.0, new Scalar(255,255,255), 2);
-					Imgproc.putText(frameToAnnotate, "Note : " + fret , new Point((currentFrame.rows() / scaleFactor) * 8 ,(currentFrame.cols() / (scaleFactor)) * (x+1)), Core.FONT_ITALIC, 2.0, new Scalar(255,255,255), 2);
+				//Annotate frame with detected strings
+				if (writeAnnotatedVideo)
+				{
+					int scaleFactor = 12;
+					if (stringsPlayed == null) stringsPlayed = new boolean[StringDetector.numberStringsToDetect];
+
 					
+					MusicNote currentNote;
+					for(int x = 0; x < StringDetector.numberStringsToDetect; x++)
+					{
+						String currentFret = "NONE";
+						
+						if (currentlyHeldNotes.get(x) != null)
+						{
+							currentNote = currentlyHeldNotes.get(x);
+							currentFret = Integer.toString(currentNote.note);
+						}
+
+						Imgproc.putText(frameToAnnotate, "String "+Integer.toString(x)+": " + stringsPlayed[x] , new Point((currentFrame.rows() / scaleFactor) * 1 ,(currentFrame.cols() / (scaleFactor)) * (x+1)), Core.FONT_ITALIC, 2.0, new Scalar(255,255,255), 2);
+						Imgproc.putText(frameToAnnotate, "Note : " + currentFret , new Point((currentFrame.rows() / scaleFactor) * 8 ,(currentFrame.cols() / (scaleFactor)) * (x+1)), Core.FONT_ITALIC, 2.0, new Scalar(255,255,255), 2);
+					}
 				}
 			}
+			//Processing of the first frame (initialisation of pluck detection)
 			else
 			{
-				//First frame initialisation
 				pluckDetector = new PluckDetector(guitarStrings);
 				firstFrame = false;
 			}
+			
 			if (writeAnnotatedVideo)
 			{
 				outputVideo.write(frameToAnnotate);
 			}
+			
 			frameNo++;
-			if ((numberFrames!= null) && (frameNo >= numberFrames)) break;
+			if ((numberFramesToProcess!= null) && (frameNo >= numberFramesToProcess)) break;
 		}
 		
 		guitarVideo.release();
@@ -228,16 +235,10 @@ public class Engine {
 		
 		File midiFile = transcribedMusic.writeFile(outputMidiFileName);
 		
-		//Process first frame
-		//Using altering canny upper and hough threshold
-		//Each time calculate mode separation of strings, and number of pairs with this mode
-		//change thresholds to maximum number of pairs with mode
-		
-		//Then then interpolate for missing strings
-		
+		//Return references to the created files
 		ProcessedFiles results = new ProcessedFiles(outputFile, midiFile);
 		
-		System.out.println("Processing Complete");
+		System.out.println("Processing Video Complete");
 		
 		return results;
 	}
@@ -272,7 +273,7 @@ public class Engine {
 			fretEdgeDetector.setCannyUpperThreshold(255);
 			fretEdgeDetector.setHoughThreshold(75);
 			
-			ArrayList<DetectedLine> guitarFrets = fretDetector.getGuitarFrets(imageToProcess, imageToAnnotate, guitarStrings,fretEdgeDetector, ImageProcessingOptions.DRAWSELECTEDLINES);
+			ArrayList<DetectedLine> guitarFrets = fretDetector.getGuitarFrets(imageToProcess, imageToAnnotate, guitarStrings,fretEdgeDetector, ImageProcessingOptions.NOPROCESSING);
 			
 			SkinDetector skinDetector = new SkinDetector();
 			

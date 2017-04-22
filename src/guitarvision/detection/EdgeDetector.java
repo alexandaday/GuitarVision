@@ -9,7 +9,7 @@ import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 
 public class EdgeDetector {
-	private int blurKernelSize = 4;
+	private int blurKernelSize = 3;
 	
 	private int cannyLowerThreshold = 0;
 	//Severe error - malloc problems, when this value is small up to 143
@@ -22,11 +22,13 @@ public class EdgeDetector {
 		Mat blurredImage = image.clone();
 
 		Imgproc.blur(image, blurredImage, new Size(blurKernelSize, blurKernelSize));
+		//Imgproc.GaussianBlur(image, blurredImage, new Size(3, 3), 1);
+		//Imgproc.medianBlur(image, blurredImage, 3);
 
 		Mat detectedEdges = new Mat();
 
 		Imgproc.Canny(blurredImage, detectedEdges, cannyLowerThreshold, cannyUpperThreshold);
-
+		
 		return detectedEdges;
 	}
 

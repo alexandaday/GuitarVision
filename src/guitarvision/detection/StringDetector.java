@@ -15,6 +15,8 @@ public class StringDetector {
 	public double angleAllowance = 1;
 	public static int numberStringsToDetect = 6;
 	
+	private Scalar stringColour = new Scalar(0,255,0);
+	
 	public ArrayList<GuitarString> getGuitarStrings(Mat originalImage, Mat imageToAnnotate, EdgeDetector edgeDetector, ImageProcessingOptions processingOptions)
 	{
 		if (edgeDetector == null)
@@ -46,7 +48,7 @@ public class StringDetector {
 		{
 			for(DetectedLine string : finalStrings)
 			{
-				Imgproc.line(imageToAnnotate, string.getPoint1(), string.getPoint2(), new Scalar(255,255,255));
+				Imgproc.line(imageToAnnotate, string.getPoint1(), string.getPoint2(), stringColour);
 			}
 		}
 		
