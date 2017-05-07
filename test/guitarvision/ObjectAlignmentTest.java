@@ -41,7 +41,7 @@ public class ObjectAlignmentTest {
 		
 		int result = alignment.computeLongestMatchScore();
 		
-		System.out.println(result);
+		//System.out.println(result);
 		
 		assertEquals(4, result);
 	}

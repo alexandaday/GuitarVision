@@ -46,8 +46,8 @@ public class PerformanceTest {
 		{
 			if (outputWriter == null)
 			{
-				System.out.println("outputfile path");
-				System.out.println(getOutputFile().getPath());
+				//System.out.println("outputfile path");
+				//System.out.println(getOutputFile().getPath());
 
 				outputWriter = new BufferedWriter(new FileWriter(getOutputFile()));
 
@@ -100,8 +100,8 @@ public class PerformanceTest {
 		
 		for(String directory : eachVideoDirectory)
 		{
-			System.out.println("directory is ");
-			System.out.println(directory);
+			//System.out.println("directory is ");
+			//System.out.println(directory);
 			
 			File curDirectory = new File(sampleVideoDirectory + directory);
 			
@@ -125,19 +125,19 @@ public class PerformanceTest {
 				//Create directory
 				String outputMidi = outputPieceDirectory.getPath();// + java.io.File.separator + videoAdress.substring(0, videoAdress.indexOf("."));
 				
-				System.out.println("FOUND VIDEO");
-				System.out.println(sampleVideoDirectory + directory + java.io.File.separator + videoAdress);
+				//System.out.println("FOUND VIDEO");
+				//System.out.println(sampleVideoDirectory + directory + java.io.File.separator + videoAdress);
 				
 				File videoFile = new File(sampleVideoDirectory + directory + java.io.File.separator + videoAdress);
 
-				ProcessedFiles files = Engine.getInstance().transcribeFromVideo(videoFile, 10, outputMidi, true);
+				ProcessedFiles files = Engine.getInstance().transcribeFromVideo(videoFile, 1000, outputMidi, true);
 				
 				File outputMIDIFile = files.getMidiFile();
 				
 				if (!(outputMIDIFile == null))
 				{
-					System.out.println("OUTPUT PATH");
-					System.out.println(outputMIDIFile.getPath());
+					//System.out.println("OUTPUT PATH");
+					//System.out.println(outputMIDIFile.getPath());
 					
 					compareMIDIFiles(correspondingMIDIFile, outputMIDIFile);
 				}
@@ -148,7 +148,7 @@ public class PerformanceTest {
 				
 			}
 			
-			System.out.println(correspondingMIDIFile.getAbsolutePath());
+			//System.out.println(correspondingMIDIFile.getAbsolutePath());
 			
 			//for each video
 			

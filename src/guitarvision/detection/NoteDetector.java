@@ -73,13 +73,13 @@ public class NoteDetector {
 			if (overlapping)
 			{
 				startedOverlapping = true;
-				System.out.println("Overlapping on fret");
-				System.out.println(x);
+				//System.out.println("Overlapping on fret");
+				//System.out.println(x);
 			}
 			if (startedOverlapping && !overlapping)
 			{
-				System.out.println("Stopped overlapping");
-				System.out.println(x);
+				//System.out.println("Stopped overlapping");
+				//System.out.println(x);
 				
 				fretPlaying = x;
 				Imgproc.line(frame, startPoint, endPoint, new Scalar(255,0,0));

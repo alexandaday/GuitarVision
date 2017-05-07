@@ -12,7 +12,7 @@ import org.opencv.core.TermCriteria;
 import org.opencv.imgproc.Imgproc;
 
 public class FretDetector {
-	public double angleAllowance = 1;
+	public double angleAllowance = 0.05;
 	public int numberFretsToDetect = 20;
 	
 	public ArrayList<DetectedLine> getGuitarFrets(Mat originalImage, Mat imageToAnnotate, ArrayList<GuitarString> guitarStrings, EdgeDetector edgeDetector, ImageProcessingOptions processingOptions)
@@ -33,15 +33,25 @@ public class FretDetector {
 		
 		ArrayList<DetectedLine> parallelLines = filterGuitarFrets(initialLines, guitarStrings);
 		
-		int noGroups = numberFretsToDetect;
+		//int noGroups = numberFretsToDetect;
 		
-		ArrayList<ArrayList<DetectedLine>> fretGroupings = clusterGuitarFrets(parallelLines, noGroups);
+		//ArrayList<ArrayList<DetectedLine>> fretGroupings = clusterGuitarFrets(parallelLines, noGroups);
 		
-		ArrayList<DetectedLine> selectedFrets = selectEachGuitarFret(fretGroupings);
+		//ArrayList<DetectedLine> selectedFrets = selectEachGuitarFret(fretGroupings);
 		
-		ArrayList<DetectedLine> finalFrets = selectedFrets;//edgeDetector.evenlyDistribute(selectedFrets, numberFretsToDetect, Intercept.XINTERCEPT);
+		//ArrayList<DetectedLine> finalFrets = selectedFrets;//edgeDetector.evenlyDistribute(selectedFrets, numberFretsToDetect, Intercept.XINTERCEPT);
 		
 		//Sort based on x intercept
+		
+		
+		//TESTING
+		ArrayList<DetectedLine> finalFrets = parallelLines;
+		ArrayList<DetectedLine> selectedFrets = parallelLines;
+		ArrayList<ArrayList<DetectedLine>> fretGroupings = null;
+		//TESTING
+		
+		
+		
 		
 		Collections.sort(selectedFrets);
 		

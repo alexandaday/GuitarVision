@@ -30,6 +30,9 @@ import org.opencv.videoio.Videoio;
 public class Engine {
 	private static Engine instance = null;
 	
+	private Size processingResolution = new Size(960,540);
+	//private Size processingResolution = new Size(1920,1080);
+	
 	public static Engine getInstance()
 	{
 		if (instance == null)
@@ -63,8 +66,10 @@ public class Engine {
 		String name = fileName.substring(0, fileName.lastIndexOf("."));
 		String extension = fileName.substring(fileName.lastIndexOf("."));
 		
-		double width = guitarVideo.get(Videoio.CAP_PROP_FRAME_WIDTH);
-		double height = guitarVideo.get(Videoio.CAP_PROP_FRAME_HEIGHT);
+		//double width = guitarVideo.get(Videoio.CAP_PROP_FRAME_WIDTH);
+		//double height = guitarVideo.get(Videoio.CAP_PROP_FRAME_HEIGHT);
+		double width = processingResolution.width;
+		double height = processingResolution.height;
 		double fps = guitarVideo.get(Videoio.CAP_PROP_FPS);
 		double codecToUse = guitarVideo.get(Videoio.CAP_PROP_FOURCC);
 		
@@ -96,13 +101,13 @@ public class Engine {
 		
 		//Gather and set up the required detection objects
 		EdgeDetector edgeDetector = new EdgeDetector();
-		edgeDetector.setCannyUpperThreshold(180);
-		edgeDetector.setHoughThreshold(470);
+		edgeDetector.setCannyUpperThreshold(95);
+		edgeDetector.setHoughThreshold(250);
 		
 		EdgeDetector fretEdgeDetector = new EdgeDetector();
 		fretEdgeDetector.setCannyLowerThreshold(0);
-		fretEdgeDetector.setCannyUpperThreshold(255);
-		fretEdgeDetector.setHoughThreshold(75);
+		fretEdgeDetector.setCannyUpperThreshold(380);
+		fretEdgeDetector.setHoughThreshold(45);
 		
 		StringDetector stringDetector = new StringDetector();
 		
@@ -135,6 +140,9 @@ public class Engine {
 		//Process frames one by one
 		while (guitarVideo.read(currentFrame))
 		{
+			//Resize image
+			Imgproc.resize(currentFrame, currentFrame, processingResolution);
+			
 			frameToAnnotate =  currentFrame.clone();
 			
 			FaceDetector faceDetector = new FaceDetector();
@@ -144,8 +152,12 @@ public class Engine {
 			//METHOD OF TURNING ON AND OFF DETECTION STAGES TO TRY AND IMPROVE SPEED
 			//GIVE USER FEEDBACK AND IMPROVE DETECTION
 			
-			//Detect strings and frest in frame
-			ArrayList<GuitarString> guitarStrings = stringDetector.getGuitarStrings(currentFrame, frameToAnnotate, edgeDetector, ImageProcessingOptions.DRAWSELECTEDLINES);
+			//Detect strings and frets in frame
+			//ArrayList<GuitarString> guitarStrings = stringDetector.getGuitarStrings(currentFrame, frameToAnnotate, edgeDetector, ImageProcessingOptions.DRAWSELECTEDLINES);
+			
+			ArrayList<GuitarString> guitarStrings = stringDetector.getAccurateGuitarStrings(currentFrame, frameToAnnotate, ImageProcessingOptions.DRAWSELECTEDLINES);
+			
+			
 			ArrayList<DetectedLine> guitarFrets = fretDetector.getGuitarFrets(currentFrame, frameToAnnotate, guitarStrings, fretEdgeDetector, ImageProcessingOptions.DRAWSELECTEDLINES);
 
 			Mat skin = skinDetector.getSkin(currentFrame);
@@ -245,14 +257,20 @@ public class Engine {
 	
 	//Variables and Methods for development/testing
 	
-	private String fileName = "../images/guitar.png";
+	File file = new File( "resources/images/guitar.png");
 	
 	public Mat getProcessedImage(int argument, int argument2, boolean showEdges)
-	{	
-		Mat imageToProcess = Imgcodecs.imread(getClass().getResource(fileName).getPath());
+	{
+		Mat imageToProcess = Imgcodecs.imread(file.getPath());
+		
+		//Resize image	
+		Imgproc.resize(imageToProcess, imageToProcess, processingResolution);
+		
+		//Mat result = new Mat();
+		//Imgproc.grabCut(imageToProcess, result, new Rect(new Point(0,0), processingResolution), new Mat(), new Mat(), 5);
 		
 		Mat imageToAnnotate = imageToProcess.clone();
-		
+				
 		EdgeDetector edgeDetector = new EdgeDetector();
 		edgeDetector.setCannyUpperThreshold(argument);
 		edgeDetector.setHoughThreshold(argument2);
@@ -265,15 +283,18 @@ public class Engine {
 		{
 			StringDetector stringDetector = new StringDetector();
 			
-			ArrayList<GuitarString> guitarStrings = stringDetector.getGuitarStrings(imageToProcess, imageToAnnotate, edgeDetector, ImageProcessingOptions.DRAWSELECTEDLINES);
+			//ArrayList<GuitarString> guitarStrings = stringDetector.getGuitarStrings(imageToProcess, imageToAnnotate, edgeDetector, ImageProcessingOptions.DRAWSELECTEDLINES);
+			
+			ArrayList<GuitarString> guitarStrings = stringDetector.getAccurateGuitarStrings(imageToProcess, imageToAnnotate, ImageProcessingOptions.DRAWSELECTEDLINES);
+			
 			
 			FretDetector fretDetector = new FretDetector();
 			EdgeDetector fretEdgeDetector = new EdgeDetector();
 			fretEdgeDetector.setCannyLowerThreshold(0);
-			fretEdgeDetector.setCannyUpperThreshold(255);
-			fretEdgeDetector.setHoughThreshold(75);
+			fretEdgeDetector.setCannyUpperThreshold(380);
+			fretEdgeDetector.setHoughThreshold(45);
 			
-			ArrayList<DetectedLine> guitarFrets = fretDetector.getGuitarFrets(imageToProcess, imageToAnnotate, guitarStrings,fretEdgeDetector, ImageProcessingOptions.NOPROCESSING);
+			ArrayList<DetectedLine> guitarFrets = fretDetector.getGuitarFrets(imageToProcess, imageToAnnotate, guitarStrings,fretEdgeDetector, ImageProcessingOptions.DRAWSELECTEDLINES);
 			
 			SkinDetector skinDetector = new SkinDetector();
 			
@@ -285,9 +306,9 @@ public class Engine {
 			
 			Mat components = new Mat();
 			
-			System.out.println("Number of labels " + Integer.toString(Imgproc.connectedComponents(skinGrey, components)));
+			//System.out.println("Number of labels " + Integer.toString(Imgproc.connectedComponents(skinGrey, components)));
 			
-			Core.addWeighted(imageToProcess, 0.6, skin, 0.4, 1.0, imageToProcess);
+			//Core.addWeighted(imageToAnnotate, 0.6, skin, 0.4, 1.0, imageToAnnotate);
 			
 			FaceDetector faceDetector = new FaceDetector();
 			
@@ -302,10 +323,10 @@ public class Engine {
 				
 				if (notePlayed != null)
 				{
-					System.out.println("Detected note string:");
-					System.out.println(x);
-					System.out.println("Note is:");
-					System.out.println(notePlayed.note);
+					//System.out.println("Detected note string:");
+					//System.out.println(x);
+					//System.out.println("Note is:");
+					//System.out.println(notePlayed.note);
 				}
 			}
 		}

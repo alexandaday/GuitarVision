@@ -5,7 +5,7 @@ import java.util.ArrayList;
 public class PluckDetector {
 	public ArrayList<GuitarString> initialStrings;
 	
-	private double scaleFactor = 6;
+	private double scaleFactor = 2;
 	
 	
 	public PluckDetector(ArrayList<GuitarString> initialStrings)

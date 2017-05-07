@@ -2,6 +2,7 @@ package guitarvision.detection;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Random;
 
 import org.opencv.core.Core;
@@ -11,11 +12,104 @@ import org.opencv.core.Scalar;
 import org.opencv.core.TermCriteria;
 import org.opencv.imgproc.Imgproc;
 
-public class StringDetector {
-	public double angleAllowance = 1;
+public class StringDetector {	
+	public double angleAllowance = 0.25;
 	public static int numberStringsToDetect = 6;
 	
 	private Scalar stringColour = new Scalar(0,255,0);
+	
+	public ArrayList<GuitarString> getAccurateGuitarStrings(Mat originalImage, Mat imageToAnnotate, ImageProcessingOptions processingOptions)
+	{
+		HashMap<Integer, ArrayList<GuitarString>> allStrings = new HashMap<Integer, ArrayList<GuitarString>>();
+		Integer highestScore = null;
+		
+		for (int cannyUpper = 50; cannyUpper < 400; cannyUpper+=500)
+		{
+			EdgeDetector edgeDetector = new EdgeDetector();
+			edgeDetector.setCannyLowerThreshold(0);
+			edgeDetector.setCannyUpperThreshold(cannyUpper);
+			edgeDetector.setHoughThreshold(300);
+			
+			ArrayList<GuitarString> curStrings = getGuitarStrings(originalImage, imageToAnnotate, edgeDetector, ImageProcessingOptions.NOPROCESSING);
+		
+			int curScore = getSpacingScore(curStrings);
+			
+			allStrings.put(curScore, curStrings);
+
+			if ((highestScore == null) || (curScore > highestScore))
+			{
+				highestScore = curScore;
+			}
+		}
+		
+		ArrayList<GuitarString> result = null;
+		
+		if ((highestScore != null) && (allStrings.containsKey(highestScore)))
+		{
+			result = allStrings.get(highestScore);
+		}
+		
+		if((processingOptions == ImageProcessingOptions.DRAWSELECTEDLINES) || (processingOptions == ImageProcessingOptions.DRAWCLUSTERS))
+		{
+			for(DetectedLine string : result)
+			{
+				Imgproc.line(imageToAnnotate, string.getPoint1(), string.getPoint2(), stringColour);
+			}
+		}
+		
+		
+		return result;
+	}
+	
+	public int getSpacingScore(ArrayList<GuitarString> strings)
+	{
+		//Assume strings are sorted
+		
+		int toleranceInPixels = 3;
+		
+		HashMap<Integer, Integer> binCount = new HashMap<Integer,Integer>();
+		
+		for(int index = 0; index < strings.size() - 1; index++)
+		{
+			double curRho = strings.get(index).rho;
+			double nextRho = strings.get(index+1).rho;
+			
+			double difference = nextRho - curRho;
+			
+			//Plus one to avoid quantising to 0
+			Integer differenceQuantised = (int) (difference - (difference % toleranceInPixels)) + 1;
+			
+			//Ignore strings which aren't separated
+			if (difference == 0) differenceQuantised = 0;
+			
+			if (binCount.containsKey(differenceQuantised))
+			{
+				binCount.put(differenceQuantised, binCount.get(differenceQuantised)+1);
+			}
+			else
+			{
+				binCount.put(differenceQuantised, 1);
+			}
+			//Compare each to next in sorted order
+			//Create count of number of each distance
+			//Disregard 0 pixels
+			//Take maximum similar - weighted of others
+		}
+		
+		//Returns how many lines are separated by the mode length
+		int maxBin = 0;
+		
+		for(Integer difference: binCount.keySet())
+		{
+			if (difference != 0)
+			{
+				int count = binCount.get(difference);
+				if (count > maxBin) maxBin = count;
+			}
+		}
+		
+		return maxBin;
+	}
 	
 	public ArrayList<GuitarString> getGuitarStrings(Mat originalImage, Mat imageToAnnotate, EdgeDetector edgeDetector, ImageProcessingOptions processingOptions)
 	{
@@ -42,8 +136,7 @@ public class StringDetector {
 		ArrayList<DetectedLine> selectedStrings = selectEachGuitarString(stringGroupings);
 		
 		ArrayList<DetectedLine> finalStrings = selectedStrings;//= edgeDetector.evenlyDistribute(selectedStrings, 6, Intercept.YINTERCEPT);
-		
-		
+	
 		if((processingOptions == ImageProcessingOptions.DRAWSELECTEDLINES) || (processingOptions == ImageProcessingOptions.DRAWCLUSTERS))
 		{
 			for(DetectedLine string : finalStrings)
@@ -152,6 +245,10 @@ public class StringDetector {
 		//Maybe use compact value it returns IMPORTANT
 		Core.kmeans(linesToCluster, noGroups, clusterLabels, new TermCriteria(TermCriteria.COUNT, 50, 1), 10, Core.KMEANS_RANDOM_CENTERS);
 		
+		//Maybe use the centers returned
+		//Mat centers = new Mat();
+		//Core.kmeans(linesToCluster, noGroups, clusterLabels, new TermCriteria(TermCriteria.COUNT, 50, 1), 10, Core.KMEANS_RANDOM_CENTERS, centers);
+		
 		ArrayList<ArrayList<DetectedLine>> groupedStrings = new ArrayList<ArrayList<DetectedLine>>();
 
 		for(int c = 0; c < noGroups; c++)
@@ -223,3 +320,4 @@ public class StringDetector {
 		numberStringsToDetect = newNumber;
 	}
 }
+

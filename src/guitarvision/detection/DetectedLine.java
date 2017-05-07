@@ -48,7 +48,7 @@ public class DetectedLine implements Comparable<DetectedLine>
 	} 
 	
 	/**
-	 * Method for calculating the two points of the line on demand
+	 * Method for calculating two points of the polar coordinate line
 	 */
 	private void computePoints()
 	{

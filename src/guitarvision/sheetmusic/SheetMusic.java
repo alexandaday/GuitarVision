@@ -34,7 +34,6 @@ public class SheetMusic {
 				
 				noteMessage.setMessage(0x90, midiNote, 0x60);
 				
-				
 				MidiEvent noteEvent = new MidiEvent(noteMessage, count);
 				midiTrack.add(noteEvent);
 				

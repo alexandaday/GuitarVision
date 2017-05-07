@@ -36,12 +36,10 @@ public class SkinDetector {
 				if (h > 180)
 				{
 					h = h - 360.0;
-					
 				}
 				
 				boolean skin = false;
 				
-				//Started working when changed, S <= -H - 0.1V - 110 to S <= -H - 0.1V + 110 like in actual code
 				if ((s >= 10) && (v >= 40) && (s <= (-1 * h) + (-1 * 0.1 * v) + 110) && (h <= (-1 * 0.4 * v) + 75))
 				{
 					if (h >= 0)
@@ -72,7 +70,7 @@ public class SkinDetector {
 			}
 		}
 		
-		return hsvImage;
+		return smoothDetectedSkin(hsvImage);
 	}
 	
 	public Mat smoothDetectedSkin(Mat image)

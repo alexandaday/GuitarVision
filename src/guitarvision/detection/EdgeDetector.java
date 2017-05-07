@@ -8,11 +8,11 @@ import org.opencv.core.Mat;
 import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 
-public class EdgeDetector {
+public class EdgeDetector {	
 	private int blurKernelSize = 3;
 	
 	private int cannyLowerThreshold = 0;
-	//Severe error - malloc problems, when this value is small up to 143
+	//Severe error - malloc problems, when this value is small up to 143 (with OpenCV 3.1)
 	private int cannyUpperThreshold = 144;
 	
 	private int houghThreshold = 300;
@@ -21,8 +21,8 @@ public class EdgeDetector {
 	{
 		Mat blurredImage = image.clone();
 
-		Imgproc.blur(image, blurredImage, new Size(blurKernelSize, blurKernelSize));
-		//Imgproc.GaussianBlur(image, blurredImage, new Size(3, 3), 1);
+		Imgproc.blur(blurredImage, blurredImage, new Size(blurKernelSize, blurKernelSize));
+		//Imgproc.GaussianBlur(image, blurredImage,  new Size(3, 3), 1);
 		//Imgproc.medianBlur(image, blurredImage, 3);
 
 		Mat detectedEdges = new Mat();
@@ -36,8 +36,10 @@ public class EdgeDetector {
 	{
 		Mat edges = new Mat();
 
-		Imgproc.HoughLines(edgeImage, edges, 1, Math.PI/360, houghThreshold);
+		//Imgproc.HoughLines(edgeImage, edges, 1, Math.PI/360, houghThreshold);
 
+		Imgproc.HoughLines(edgeImage, edges, 1, Math.PI/360, houghThreshold);
+		
 		return edges;
 	}
 	

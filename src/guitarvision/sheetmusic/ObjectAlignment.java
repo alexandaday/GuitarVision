@@ -10,6 +10,8 @@ public class ObjectAlignment<T> {
 	int mismatchScore = 0;
 	int insertDeleteScore = 0;
 	
+	T matchTolerance = null;
+	
 	//Perform string alignment on the notes in two MIDI files
 	public ObjectAlignment(ArrayList<T> firstList, ArrayList<T> secondList)
 	{
@@ -32,6 +34,11 @@ public class ObjectAlignment<T> {
 		insertDeleteScore = value;
 	}
 	
+	public void setMatchTolerance(T value)
+	{
+		matchTolerance = value;
+	}
+	
 	private boolean nodeExists(int i, int j)
 	{
 		return ((i >= 0) && (i < firstList.size()) && (j >= 0) && (j < secondList.size()));
@@ -39,10 +46,10 @@ public class ObjectAlignment<T> {
 	
 	public int computeLongestMatchScore()
 	{
-		int[][] scores = new int[firstList.size()][secondList.size()];
-		for (int i = 0; i < firstList.size(); i++)
+		int[][] scores = new int[firstList.size()+1][secondList.size()+1];
+		for (int i = 0; i <= firstList.size(); i++)
 		{
-			for (int j = 0; j < secondList.size(); j++)
+			for (int j = 0; j <= secondList.size(); j++)
 			{
 				int northI = i - 1;
 				int northJ = j;
@@ -60,7 +67,29 @@ public class ObjectAlignment<T> {
 				if (northWestExists)
 				{
 					northWestScore = scores[northWestI][northWestJ];
-					if (firstList.get(northWestI).equals(secondList.get(northWestJ)))
+					
+					T firstVal = firstList.get(northWestI);
+					T secondVal = secondList.get(northWestJ);
+					
+					boolean matchCondition = false;
+					
+					if (matchTolerance == null)
+					{
+						matchCondition = firstVal.equals(secondVal);
+					}
+					else
+					{
+						//Hardcoding bytes, but should work with any type with addition
+						if (firstVal instanceof Byte && secondVal instanceof Byte)
+						{
+							Byte tolerance = (Byte) matchTolerance;
+							Byte firstByte = (Byte) firstVal;
+							Byte secondByte = (Byte) secondVal;
+							matchCondition = (firstByte <= secondByte + tolerance) && (firstByte >= secondByte - tolerance);
+						}
+					}
+					
+					if (matchCondition)
 					{
 						northWestScore += matchScore;
 					}
@@ -96,7 +125,7 @@ public class ObjectAlignment<T> {
 				
 				int newScore = Integer.max(northWestScore,Integer.max(northScore, westScore));
 				
-				if (!(northWestExists && westExists && northExists))
+				if (!northWestExists && !westExists && !northExists)
 				{
 					newScore = 0;
 				}
