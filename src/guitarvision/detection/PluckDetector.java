@@ -15,11 +15,11 @@ public class PluckDetector {
 	
 	public boolean[] detectStringsBeingPlayed(ArrayList<GuitarString> strings)
 	{
-		int numberStrings = StringDetector.numberStringsToDetect;
+		int numberStrings = strings.size();//StringDetector.numberStringsToDetect;
 		
 		boolean[] stringsBeingPlayed = new boolean [numberStrings];
 		
-		if ((strings.size() != initialStrings.size()) || (numberStrings != strings.size()))
+		if (strings.size() != initialStrings.size())
 		{
 			return null;
 		}

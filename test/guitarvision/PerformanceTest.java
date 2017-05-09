@@ -8,6 +8,8 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 public class PerformanceTest {
 	String sampleVideoDirectory = "resources/video/";
@@ -15,7 +17,7 @@ public class PerformanceTest {
 	
 	String outputDirectoryName = "test_output";
 	
-	String outputFile = "test_stats.cvs";
+	String outputFile = "test_stats.csv";
 	
 	BufferedWriter outputWriter;
 	
@@ -83,6 +85,11 @@ public class PerformanceTest {
 	
 	public void compareToManualTranscriptions()
 	{
+		System.out.println("Starting performance test");
+		SimpleDateFormat format = new SimpleDateFormat("HH:mm:ss");
+		Date date = new Date();
+		System.out.println(format.format(date));
+		
 		File videoDirectory = new File(sampleVideoDirectory);
 		
 		String[] eachVideoDirectory = videoDirectory.list(new FilenameFilter() {
@@ -169,6 +176,11 @@ public class PerformanceTest {
 		{
 			System.out.println("Error closing output file");
 		}
+		
+		System.out.println("Performance test complete");
+		Date endDate = new Date();
+		System.out.println(format.format(endDate));
+		
 	}
 	
 	public void compareMIDIFiles(File actualTranscription, File systemTranscription)

@@ -10,16 +10,20 @@ import org.opencv.imgcodecs.Imgcodecs;
 import guitarvision.Engine;
 import guitarvision.PerformanceTest;
 import javafx.application.Application;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.RadioButton;
 import javafx.scene.control.Slider;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Alert.AlertType;
+import javafx.scene.control.Toggle;
+import javafx.scene.control.ToggleGroup;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
@@ -33,10 +37,6 @@ import javafx.geometry.Pos;
 public class UserInterface extends Application{
 	//Dialog box
 	private Alert alert = new Alert(AlertType.INFORMATION);
-	
-	private Slider sliderCanny;
-	private Slider sliderHough;
-	private CheckBox checkBoxEdges;
 	
 	private ImageView imageView;
 	
@@ -93,49 +93,99 @@ public class UserInterface extends Application{
 			}
 		});
 		
-		sliderCanny = new Slider(0,1,0.5);
-		sliderCanny.setOnDragDetected(new EventHandler<MouseEvent>()
-		{
-			@Override
-			public void handle(MouseEvent event)
+		Slider sliderCanny = new Slider();
+		sliderCanny.setMin(0);
+		sliderCanny.setMax(1000);
+		sliderCanny.valueProperty().addListener(new ChangeListener<Number>(){
+			public void changed(ObservableValue<? extends Number> values, Number oldValue, Number newValue)
 			{
-				int intValue = processSliderValue(sliderCanny.getValue());
-				int intValue2 = processSliderValue(sliderHough.getValue());
-				valueCanny.setText(Integer.toString(intValue));
-				updateImageWithNewParameters(intValue, intValue2, checkBoxEdges.isSelected());
+				int sliderValue = (int) newValue.doubleValue();
+				valueCanny.setText(Integer.toString(sliderValue));
+				updateImageWithCannyUpper(sliderValue);
 			}
 		});
 		
-		sliderHough = new Slider(0,1,0.5);
-		sliderHough.setOnDragDetected(new EventHandler<MouseEvent>()
-		{
-			@Override
-			public void handle(MouseEvent event)
+		Slider sliderHough = new Slider(0,1,0.5);
+		sliderHough.setMin(0);
+		sliderHough.setMax(1000);
+		sliderHough.valueProperty().addListener(new ChangeListener<Number>(){
+			public void changed(ObservableValue<? extends Number> values, Number oldValue, Number newValue)
 			{
-				int intValue = processSliderValue(sliderCanny.getValue());
-				int intValue2 = processSliderValue(sliderHough.getValue());
-				valueHough.setText(Integer.toString(intValue2));
-				updateImageWithNewParameters(intValue, intValue2, checkBoxEdges.isSelected());
+				int sliderValue = (int) newValue.doubleValue();
+				valueHough.setText(Integer.toString(sliderValue));
+				updateImageWithHoughUpper(sliderValue);
 			}
 		});
 		
-		checkBoxEdges = new javafx.scene.control.CheckBox();
+		CheckBox checkBoxEdges = new javafx.scene.control.CheckBox();
 		checkBoxEdges.setText("Show Edges");
 		checkBoxEdges.setOnAction(new EventHandler<ActionEvent>()
 		{
 			@Override
 			public void handle(ActionEvent event)
 			{
-				int intValue = processSliderValue(sliderCanny.getValue());
-				int intValue2 = processSliderValue(sliderHough.getValue());
-				updateImageWithNewParameters(intValue, intValue2, checkBoxEdges.isSelected());
+				updateImageWhetherEdges(checkBoxEdges.isSelected());
+			}
+		});
+		
+		ToggleGroup imageToggle = new ToggleGroup();
+		
+		RadioButton image1 = new RadioButton("Scene 1");
+		image1.setToggleGroup(imageToggle);
+		image1.setSelected(true);
+		RadioButton image2 = new RadioButton("Scene 2");
+		image2.setToggleGroup(imageToggle);
+		RadioButton image3 = new RadioButton("Scene 3");
+		image3.setToggleGroup(imageToggle);
+		RadioButton image4 = new RadioButton("Scene Angle");
+		image4.setToggleGroup(imageToggle);
+		RadioButton image5 = new RadioButton("Scene Different Guitar");
+		image5.setToggleGroup(imageToggle);
+		RadioButton image6 = new RadioButton("Scene Poor Lighting");
+		image6.setToggleGroup(imageToggle);
+		
+		imageToggle.selectedToggleProperty().addListener(new ChangeListener<Toggle>() {
+			public void changed(ObservableValue<? extends Toggle> value, Toggle prevTogle, Toggle newTogle)
+			{
+				if (imageToggle.getSelectedToggle() != null)
+				{
+					Toggle selectedToggle = imageToggle.getSelectedToggle();
+					int imageNo = 0;
+					if(selectedToggle == image1)
+					{
+						imageNo = 1;
+					}
+					else if(selectedToggle == image2)
+					{
+						imageNo = 2;
+					}
+					else if(selectedToggle == image3)
+					{
+						imageNo = 3;
+					}
+					else if(selectedToggle == image4)
+					{
+						imageNo = 4;
+					}
+					else if(selectedToggle == image5)
+					{
+						imageNo = 5;
+					}
+					else if(selectedToggle == image6)
+					{
+						imageNo = 6;
+					}
+					updateImageWithNewImageNumber(imageNo);
+				}
 			}
 		});
 
 		HBox horizontalLayout = new HBox();
 		HBox horizontalLayout2 = new HBox();
+		HBox horizontalLayout3 = new HBox();
 		horizontalLayout.setAlignment(Pos.CENTER);
 		horizontalLayout2.setAlignment(Pos.CENTER);
+		horizontalLayout3.setAlignment(Pos.CENTER);
 		
 		horizontalLayout.getChildren().add(labelCanny);
 		horizontalLayout.getChildren().add(sliderCanny);
@@ -145,26 +195,25 @@ public class UserInterface extends Application{
 		horizontalLayout2.getChildren().add(sliderHough);
 		horizontalLayout2.getChildren().add(valueHough);
 		
+		horizontalLayout3.getChildren().add(image1);
+		horizontalLayout3.getChildren().add(image2);
+		horizontalLayout3.getChildren().add(image3);
+		horizontalLayout3.getChildren().add(image4);
+		horizontalLayout3.getChildren().add(image5);
+		horizontalLayout3.getChildren().add(image6);
+		
 		verticalLayout.getChildren().add(buttonTest);
 		verticalLayout.getChildren().add(checkBoxEdges);
 		verticalLayout.getChildren().add(horizontalLayout);
 		verticalLayout.getChildren().add(horizontalLayout2);
+		verticalLayout.getChildren().add(horizontalLayout3);
 		verticalLayout.getChildren().add(imageView);
 		
 		//Initialise the window
-		double initialCannySliderValue = 0.072;
-		double initialHoughSliderValue = 0.470;
+		sliderCanny.setValue(72);
+		sliderHough.setValue(470);
 		
-		int intValue1 = processSliderValue(initialCannySliderValue);
-		int intValue2 = processSliderValue(initialHoughSliderValue);
-		
-		valueCanny.setText(Integer.toString(intValue1));
-		valueHough.setText(Integer.toString(intValue2));
-		
-		updateImageWithNewParameters(intValue1, intValue2, false);
-		
-		sliderCanny.setValue(initialCannySliderValue);
-		sliderHough.setValue(initialHoughSliderValue);
+		updateImage();
 		
 		//Display the window
 		stage.setScene(new Scene(root, 1000, 600));
@@ -231,15 +280,38 @@ public class UserInterface extends Application{
 		alert.showAndWait();
 	}
 	
-	public int processSliderValue(double value)
+	int cannyUpper = 0;
+	int houghUpper = 0;
+	boolean showEdges = false;
+	int imageNumber = 1;
+	
+	public void updateImageWithCannyUpper(int val)
 	{
-		//Scale the 0-1 slider value for use as Canny/Hough parameter values
-		return (int) (value * 1000);
+		cannyUpper = val;
+		updateImage();
 	}
 	
-	public void updateImageWithNewParameters(int argumentCanny, int argumentHough, boolean showEdges)
+	public void updateImageWithHoughUpper(int val)
+	{
+		houghUpper = val;
+		updateImage();
+	}
+	
+	public void updateImageWhetherEdges(boolean val)
+	{
+		showEdges = val;
+		updateImage();
+	}
+	
+	public void updateImageWithNewImageNumber(int val)
+	{
+		imageNumber = val;
+		updateImage();
+	}
+	
+	public void updateImage()
 	{		
-		Mat image = Engine.getInstance().getProcessedImage(argumentCanny, argumentHough, showEdges);
+		Mat image = Engine.getInstance().getProcessedImage(cannyUpper, houghUpper, showEdges, imageNumber);
 		
 		MatOfByte imageBuffer = new MatOfByte();
 		

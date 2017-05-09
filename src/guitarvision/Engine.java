@@ -124,7 +124,7 @@ public class Engine {
 		
 		if (numberFramesToProcess == null)
 		{
-			numberFramesToProcess = 50;
+			numberFramesToProcess = 1000;
 		}
 
 		boolean firstFrame = true;
@@ -132,7 +132,7 @@ public class Engine {
 		//List tracking which strings are currently being played in the frame
 		ArrayList<MusicNote> currentlyHeldNotes = new ArrayList<MusicNote>();
 		
-		for(int x = 0; x < StringDetector.numberStringsToDetect; x++)
+		for(int x = 0; x < stringDetector.getNumberOfStringsToDetect(); x++)
 		{
 			currentlyHeldNotes.add(null);
 		}
@@ -168,7 +168,7 @@ public class Engine {
 			if (!firstFrame)
 			{
 				//Re-calibrate pluck detector if frame used didn't detect all guitar strings
-				if (pluckDetector.initialStrings.size() < StringDetector.numberStringsToDetect && guitarStrings.size() > pluckDetector.initialStrings.size())
+				if (pluckDetector.initialStrings.size() < stringDetector.getNumberOfStringsToDetect() && guitarStrings.size() > pluckDetector.initialStrings.size())
 				{
 					pluckDetector.initialStrings = guitarStrings;
 				}
@@ -204,11 +204,11 @@ public class Engine {
 				if (writeAnnotatedVideo)
 				{
 					int scaleFactor = 12;
-					if (stringsPlayed == null) stringsPlayed = new boolean[StringDetector.numberStringsToDetect];
+					if (stringsPlayed == null) stringsPlayed = new boolean[stringDetector.getNumberOfStringsToDetect()];
 
 					
 					MusicNote currentNote;
-					for(int x = 0; x < StringDetector.numberStringsToDetect; x++)
+					for(int x = 0; x < stringDetector.getNumberOfStringsToDetect(); x++)
 					{
 						String currentFret = "NONE";
 						
@@ -257,10 +257,34 @@ public class Engine {
 	
 	//Variables and Methods for development/testing
 	
-	File file = new File( "resources/images/guitar.png");
+	String filePath = "resources/images/guitar1.png";
 	
-	public Mat getProcessedImage(int argument, int argument2, boolean showEdges)
+	public Mat getProcessedImage(int argument, int argument2, boolean showEdges, int imageNumber)
 	{
+		switch(imageNumber)
+		{
+		case 1:
+			filePath = "resources/images/guitar1.png";
+			break;
+		case 2:
+			filePath = "resources/images/guitar2.png";
+			break;
+		case 3:
+			filePath = "resources/images/guitar3.png";
+			break;
+		case 4:
+			filePath = "resources/images/guitar4.png";
+			break;
+		case 5:
+			filePath = "resources/images/guitar5.png";
+			break;
+		case 6:
+			filePath = "resources/images/guitar6.png";
+			break;
+		}
+		
+		File file = new File(filePath);
+		
 		Mat imageToProcess = Imgcodecs.imread(file.getPath());
 		
 		//Resize image	
@@ -317,7 +341,7 @@ public class Engine {
 			
 			NoteDetector noteDetector = new NoteDetector();
 			
-			for (int x = 0; x < StringDetector.numberStringsToDetect; x++)
+			for (int x = 0; x < stringDetector.getNumberOfStringsToDetect(); x++)
 			{
 				MusicNote notePlayed = noteDetector.getNote(imageToProcess, 0, skin, x, guitarStrings, guitarFrets);
 				

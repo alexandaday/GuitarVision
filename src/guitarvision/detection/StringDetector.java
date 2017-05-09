@@ -13,8 +13,8 @@ import org.opencv.core.TermCriteria;
 import org.opencv.imgproc.Imgproc;
 
 public class StringDetector {	
-	public double angleAllowance = 0.25;
-	public static int numberStringsToDetect = 6;
+	private double angleAllowance = 0.25;
+	private int numberStringsToDetect = 6;
 	
 	private Scalar stringColour = new Scalar(0,255,0);
 	
@@ -23,8 +23,11 @@ public class StringDetector {
 		HashMap<Integer, ArrayList<GuitarString>> allStrings = new HashMap<Integer, ArrayList<GuitarString>>();
 		Integer highestScore = null;
 		
-		for (int cannyUpper = 50; cannyUpper < 400; cannyUpper+=500)
+		for (int cannyUpper = 50; cannyUpper < 400; cannyUpper+=50)
 		{
+			//System.out.println("CANNY THRESHOLD");
+			//System.out.println(cannyUpper);
+			
 			EdgeDetector edgeDetector = new EdgeDetector();
 			edgeDetector.setCannyLowerThreshold(0);
 			edgeDetector.setCannyUpperThreshold(cannyUpper);
@@ -71,10 +74,15 @@ public class StringDetector {
 		
 		for(int index = 0; index < strings.size() - 1; index++)
 		{
-			double curRho = strings.get(index).rho;
-			double nextRho = strings.get(index+1).rho;
+			double curRho = strings.get(index).getYIntercept();
+			double nextRho = strings.get(index+1).getYIntercept();
+			
+			//THEY AREN'T SORTED BY Y INTERCEPT
 			
 			double difference = nextRho - curRho;
+			
+			//System.out.println("Difference");
+			//System.out.println(difference);
 			
 			//Plus one to avoid quantising to 0
 			Integer differenceQuantised = (int) (difference - (difference % toleranceInPixels)) + 1;
@@ -108,6 +116,9 @@ public class StringDetector {
 			}
 		}
 		
+		//System.out.println("Score");
+		//System.out.println(maxBin);
+		
 		return maxBin;
 	}
 	
@@ -133,7 +144,7 @@ public class StringDetector {
 		
 		ArrayList<ArrayList<DetectedLine>> stringGroupings = clusterGuitarStrings(parallelLines, noGroups);
 		
-		ArrayList<DetectedLine> selectedStrings = selectEachGuitarString(stringGroupings);
+		ArrayList<DetectedLine> selectedStrings = selectCenterGuitarString(stringGroupings);
 		
 		ArrayList<DetectedLine> finalStrings = selectedStrings;//= edgeDetector.evenlyDistribute(selectedStrings, 6, Intercept.YINTERCEPT);
 	
@@ -269,7 +280,7 @@ public class StringDetector {
 		return groupedStrings;
 	}
 
-	private ArrayList<DetectedLine> selectEachGuitarString(ArrayList<ArrayList<DetectedLine>> groupedStrings)
+	private ArrayList<DetectedLine> selectCenterGuitarString(ArrayList<ArrayList<DetectedLine>> groupedStrings)
 	{	
 		
 		ArrayList<DetectedLine> finalStrings = new ArrayList<DetectedLine>();
@@ -315,9 +326,19 @@ public class StringDetector {
 		angleAllowance = newAngle;
 	}
 	
+	public double getAngleAllowance()
+	{
+		return angleAllowance;
+	}
+	
 	public void setNumberOfStringsToDetect(int newNumber)
 	{
 		numberStringsToDetect = newNumber;
+	}
+	
+	public int getNumberOfStringsToDetect()
+	{
+		return numberStringsToDetect;
 	}
 }
 

@@ -8,7 +8,7 @@ import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 
 public class SkinDetector {
-	public static int detectedColour = 255;
+	private static int detectedColour = 255;
 	
 	private static final int overlapThreshold = 5;
 	
