@@ -36,10 +36,8 @@ public class EdgeDetector {
 	{
 		Mat edges = new Mat();
 
-		//Imgproc.HoughLines(edgeImage, edges, 1, Math.PI/360, houghThreshold);
-
 		Imgproc.HoughLines(edgeImage, edges, 1, Math.PI/360, houghThreshold);
-		
+
 		return edges;
 	}
 	

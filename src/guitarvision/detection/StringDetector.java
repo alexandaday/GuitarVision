@@ -22,16 +22,39 @@ public class StringDetector {
 	{
 		HashMap<Integer, ArrayList<GuitarString>> allStrings = new HashMap<Integer, ArrayList<GuitarString>>();
 		Integer highestScore = null;
+		int bestCanny = 0;
 		
+		//Find best scoring canny upper threshold
 		for (int cannyUpper = 50; cannyUpper < 400; cannyUpper+=50)
 		{
-			//System.out.println("CANNY THRESHOLD");
-			//System.out.println(cannyUpper);
+			System.out.println("CANNY THRESHOLD");
+			System.out.println(cannyUpper);
 			
 			EdgeDetector edgeDetector = new EdgeDetector();
 			edgeDetector.setCannyLowerThreshold(0);
 			edgeDetector.setCannyUpperThreshold(cannyUpper);
 			edgeDetector.setHoughThreshold(300);
+			
+			ArrayList<GuitarString> curStrings = getGuitarStrings(originalImage, imageToAnnotate, edgeDetector, ImageProcessingOptions.NOPROCESSING);
+		
+			int curScore = getSpacingScore(curStrings);
+			
+			allStrings.put(curScore, curStrings);
+
+			if ((highestScore == null) || (curScore > highestScore))
+			{
+				highestScore = curScore;
+				bestCanny = cannyUpper;
+			}
+		}
+		
+		//Find best scoring hough threshold for the canny threshold
+		for (int houghUpper = 300; houghUpper < 400; houghUpper+=50)
+		{
+			EdgeDetector edgeDetector = new EdgeDetector();
+			edgeDetector.setCannyLowerThreshold(0);
+			edgeDetector.setCannyUpperThreshold(bestCanny);
+			edgeDetector.setHoughThreshold(houghUpper);
 			
 			ArrayList<GuitarString> curStrings = getGuitarStrings(originalImage, imageToAnnotate, edgeDetector, ImageProcessingOptions.NOPROCESSING);
 		
@@ -116,8 +139,8 @@ public class StringDetector {
 			}
 		}
 		
-		//System.out.println("Score");
-		//System.out.println(maxBin);
+		System.out.println("Score");
+		System.out.println(maxBin);
 		
 		return maxBin;
 	}
@@ -146,8 +169,14 @@ public class StringDetector {
 		
 		ArrayList<DetectedLine> selectedStrings = selectCenterGuitarString(stringGroupings);
 		
-		ArrayList<DetectedLine> finalStrings = selectedStrings;//= edgeDetector.evenlyDistribute(selectedStrings, 6, Intercept.YINTERCEPT);
+		
+		
+		ArrayList<DetectedLine> finalStrings = selectedStrings;//edgeDetector.evenlyDistribute(selectedStrings, 6, Intercept.YINTERCEPT);
 	
+		//PERFORM EVEN DISTRIBUTION BEFORE SORT STRINGS
+		
+		Collections.sort(finalStrings);
+		
 		if((processingOptions == ImageProcessingOptions.DRAWSELECTEDLINES) || (processingOptions == ImageProcessingOptions.DRAWCLUSTERS))
 		{
 			for(DetectedLine string : finalStrings)

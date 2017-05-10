@@ -1,5 +1,10 @@
 package guitarvision.detection;
 
+import guitarvision.Engine;
+
+import org.opencv.core.Core;
+import org.opencv.core.CvType;
+import org.opencv.core.Mat;
 import org.opencv.core.Point;
 
 /**
@@ -113,6 +118,14 @@ public class DetectedLine implements Comparable<DetectedLine>
 		return this.rho / Math.sin(this.theta);
 	}
 	
+	//Y value of point on this line that intersects the line x = verticalLineXPos
+	public double getYAtXValue(int xValue)
+	{
+		System.out.println("GRADEIENT");
+		System.out.println(getGradient());
+		return (getGradient() * xValue) + getYIntercept();
+	}
+	
 	public double getIntercept(Intercept intercept)
 	{
 		switch(intercept)
@@ -134,7 +147,7 @@ public class DetectedLine implements Comparable<DetectedLine>
 		
 		Point o1 = otherLine.getPoint1();
 		Point o2 = otherLine.getPoint2();
-		
+	
 		double m1 = (p1.y - p2.y) / (p1.x - p2.x);
 		double m2 = (o1.y - o2.y) / (o1.x - o2.x);
 		
@@ -143,11 +156,98 @@ public class DetectedLine implements Comparable<DetectedLine>
 		
 		Point intersection = new Point();
 		
-		intersection.x = (c2 - c1)  / (m1 - m2);
+		if ((otherLine.theta == 0) && (theta == 0))
+		{
+			return null;
+		}
+		else if (otherLine.theta == theta)
+		{
+			return null;
+		}
+		else if (otherLine.theta == 0)
+		{
+			intersection.x = otherLine.rho;
+			intersection.y = (m1 * otherLine.rho) + c1;
+			return intersection;
+		}
+		else if (theta == 0)
+		{
+			intersection.x = rho;
+			intersection.y = (m2 * rho) + c2;
+			return intersection;
+		}
+		else
+		{
+			intersection.x = (c2 - c1)  / (m1 - m2);
+			
+			intersection.y = ((c1 * m2) - (c2 * m1))  / (m2 - m1);
+			
+			return intersection;
+		}
+	}
+	
+	public void applyWarp(Mat warp)
+	{
+		Mat point1Vector = new Mat();
 		
-		intersection.y = ((c1 * m2) - (c2 * m1))  / (m2 - m1);
+		point1Vector.create(3, 1, CvType.CV_64F);
+		point1Vector.put(0, 0, point1.x);
+		point1Vector.put(1, 0, point1.y);
+		point1Vector.put(2, 0, 1);
 		
-		return intersection;
+		Mat point2Vector = new Mat();
+		
+		point2Vector.create(3, 1, CvType.CV_64F);
+		point2Vector.put(0, 0, point2.x);
+		point2Vector.put(1, 0, point2.y);
+		point2Vector.put(2, 0, 1);
+		
+		Mat point1Transformed = new Mat(1, 3, CvType.CV_64F);
+		Mat point2Transformed = new Mat(1, 3, CvType.CV_64F);
+		
+		System.out.println("warp matrix dimensions");
+		System.out.println(warp.width());
+		System.out.println(warp.height());
+		System.out.println(warp.type());
+		System.out.println("point1vectordimensions");
+		System.out.println(point1Vector.width());
+		System.out.println(point1Vector.height());
+		System.out.println(point1Vector.type());
+		
+		Core.gemm(warp, point1Vector, 1, new Mat(), 0, point1Transformed);
+		Core.gemm(warp, point2Vector, 1, new Mat(), 0, point2Transformed);
+		
+		System.out.println("new vector");
+		System.out.println(point1Transformed.width());
+		System.out.println(point1Transformed.height());
+		
+		System.out.println("Before vectors");
+		Engine.getInstance().printMatrix(point1Vector);
+		Engine.getInstance().printMatrix(point2Vector);
+		System.out.println("Warp");
+		Engine.getInstance().printMatrix(warp);
+		System.out.println("After vectors");
+		Engine.getInstance().printMatrix(point1Transformed);
+		Engine.getInstance().printMatrix(point2Transformed);
+		
+		double normalisefactor = point1Transformed.get(2, 0)[0];
+		
+		point1 = new Point();
+		point1.x = point1Transformed.get(0, 0)[0] / normalisefactor;
+		point1.y = point1Transformed.get(1, 0)[0] / normalisefactor;
+		
+		double normalisefactor2 = point2Transformed.get(2, 0)[0];
+		
+		point2 = new Point();
+		point2.x = point2Transformed.get(0, 0)[0] / normalisefactor2;
+		point2.y = point2Transformed.get(1, 0)[0] / normalisefactor2;
+		
+		double newGradient = (point2.y - point1.y) / (point2.x - point1.x);
+		
+		double newTheta = Math.atan(newGradient);
+		double newRho = Math.abs(point1.y - (newGradient * point1.x)) / Math.sqrt((newGradient * newGradient) + 1);	
+		theta = newTheta;
+		rho = newRho;
 	}
 	
 	@Override

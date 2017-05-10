@@ -104,7 +104,7 @@ public class UserInterface extends Application{
 				updateImageWithCannyUpper(sliderValue);
 			}
 		});
-		
+
 		Slider sliderHough = new Slider(0,1,0.5);
 		sliderHough.setMin(0);
 		sliderHough.setMax(1000);
@@ -114,6 +114,20 @@ public class UserInterface extends Application{
 				int sliderValue = (int) newValue.doubleValue();
 				valueHough.setText(Integer.toString(sliderValue));
 				updateImageWithHoughUpper(sliderValue);
+			}
+		});
+		
+		CheckBox autoLevelsCheckBox = new javafx.scene.control.CheckBox();
+		autoLevelsCheckBox.setText("Auto");
+		autoLevelsCheckBox.setOnAction(new EventHandler<ActionEvent>()
+		{
+			@Override
+			public void handle(ActionEvent event)
+			{
+				boolean autoEnabled = autoLevelsCheckBox.isSelected();
+				sliderCanny.setDisable(autoEnabled);
+				sliderHough.setDisable(autoEnabled);
+				updateImageWhetherAuto(autoEnabled);
 			}
 		});
 		
@@ -194,6 +208,7 @@ public class UserInterface extends Application{
 		horizontalLayout2.getChildren().add(labelHough);
 		horizontalLayout2.getChildren().add(sliderHough);
 		horizontalLayout2.getChildren().add(valueHough);
+		horizontalLayout2.getChildren().add(autoLevelsCheckBox);
 		
 		horizontalLayout3.getChildren().add(image1);
 		horizontalLayout3.getChildren().add(image2);
@@ -210,8 +225,9 @@ public class UserInterface extends Application{
 		verticalLayout.getChildren().add(imageView);
 		
 		//Initialise the window
-		sliderCanny.setValue(72);
-		sliderHough.setValue(470);
+		sliderCanny.setValue(70);
+		sliderHough.setValue(300);
+		autoLevelsCheckBox.setSelected(false);
 		
 		updateImage();
 		
@@ -280,7 +296,9 @@ public class UserInterface extends Application{
 		alert.showAndWait();
 	}
 	
+	boolean autoCanny = false;
 	int cannyUpper = 0;
+	boolean autoLevels = false;
 	int houghUpper = 0;
 	boolean showEdges = false;
 	int imageNumber = 1;
@@ -288,6 +306,12 @@ public class UserInterface extends Application{
 	public void updateImageWithCannyUpper(int val)
 	{
 		cannyUpper = val;
+		updateImage();
+	}
+	
+	public void updateImageWhetherAuto(boolean val)
+	{
+		autoLevels = val;
 		updateImage();
 	}
 	
@@ -311,7 +335,7 @@ public class UserInterface extends Application{
 	
 	public void updateImage()
 	{		
-		Mat image = Engine.getInstance().getProcessedImage(cannyUpper, houghUpper, showEdges, imageNumber);
+		Mat image = Engine.getInstance().getProcessedImage(cannyUpper, houghUpper, showEdges, imageNumber, autoLevels);
 		
 		MatOfByte imageBuffer = new MatOfByte();
 		
