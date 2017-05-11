@@ -60,8 +60,8 @@ public class FretDetector {
 		
 		ArrayList<DetectedLine> initialLines = getLinesFromParameters(houghLineParameters);
 		
-		System.out.println("Number of lines detected: ");
-		System.out.println(initialLines.size());
+		//System.out.println("Number of lines detected: ");
+		//System.out.println(initialLines.size());
 		
 		//ArrayList<DetectedLine> parallelLines = filterGuitarNeckFrets(initialLines);
 		
@@ -179,7 +179,8 @@ public class FretDetector {
 		
 		
 		
-		
+		if ((processingOptions == ImageProcessingOptions.DRAWSELECTEDLINES) || (processingOptions == ImageProcessingOptions.DRAWCLUSTERS))
+		{
 		int x = 0;
 		Scalar colour = null;
 		for(DetectedLine fret : finalFrets)
@@ -202,6 +203,7 @@ public class FretDetector {
 			}
 			Imgproc.line(originalImageToAnnotate, fret.getPoint1(), fret.getPoint2(), colour);
 			x++;
+		}
 		}
 		
 		

@@ -14,6 +14,8 @@ import org.opencv.imgproc.Imgproc;
 
 public class StringDetector {	
 	private double angleAllowance = 0.25;
+
+	private int numberInitialLinesToDetect = 8;
 	private int numberStringsToDetect = 6;
 	
 	private Scalar stringColour = new Scalar(0,255,0);
@@ -163,19 +165,24 @@ public class StringDetector {
 		
 		ArrayList<DetectedLine> parallelLines = filterGuitarStrings(initialLines);
 		
-		int noGroups = numberStringsToDetect;
+		int noGroups = numberInitialLinesToDetect;
 		
 		ArrayList<ArrayList<DetectedLine>> stringGroupings = clusterGuitarStrings(parallelLines, noGroups);
 		
 		ArrayList<DetectedLine> selectedStrings = selectCenterGuitarString(stringGroupings);
 		
+		Collections.sort(selectedStrings);
+		
+		//ArrayList<ArrayList<DetectedLine>> stringGroupings2 = clusterGuitarStrings(selectedStrings, 6);
+		
+		//ArrayList<DetectedLine> selectedStrings2 = selectCenterGuitarString(stringGroupings2);
 		
 		
-		ArrayList<DetectedLine> finalStrings = selectedStrings;//edgeDetector.evenlyDistribute(selectedStrings, 6, Intercept.YINTERCEPT);
+		ArrayList<DetectedLine> finalStrings = edgeDetector.evenlyDistributeByPairs2(selectedStrings, numberStringsToDetect, Intercept.YINTERCEPT);
 	
 		//PERFORM EVEN DISTRIBUTION BEFORE SORT STRINGS
 		
-		Collections.sort(finalStrings);
+		
 		
 		if((processingOptions == ImageProcessingOptions.DRAWSELECTEDLINES) || (processingOptions == ImageProcessingOptions.DRAWCLUSTERS))
 		{
@@ -362,12 +369,12 @@ public class StringDetector {
 	
 	public void setNumberOfStringsToDetect(int newNumber)
 	{
-		numberStringsToDetect = newNumber;
+		numberInitialLinesToDetect = newNumber;
 	}
 	
 	public int getNumberOfStringsToDetect()
 	{
-		return numberStringsToDetect;
+		return numberInitialLinesToDetect;
 	}
 }
 

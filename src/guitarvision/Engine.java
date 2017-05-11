@@ -1,6 +1,5 @@
 package guitarvision;
 
-import java.awt.Color;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -290,6 +289,7 @@ public class Engine {
 		File file = new File(filePath);
 		
 		Mat imageToProcess = Imgcodecs.imread(file.getPath());
+
 		
 		//Resize image	
 		Imgproc.resize(imageToProcess, imageToProcess, processingResolution);
@@ -332,12 +332,14 @@ public class Engine {
 				guitarStrings = stringDetector.getAccurateGuitarStrings(imageToProcess, imageToAnnotate, ImageProcessingOptions.DRAWSELECTEDLINES);	
 			}
 			
-			Imgproc.line(imageToAnnotate, guitarStrings.get(0).getPoint1(), guitarStrings.get(0).getPoint2(), new Scalar(255,0,0));
-			Imgproc.line(imageToAnnotate, guitarStrings.get(5).getPoint1(), guitarStrings.get(5).getPoint2(), new Scalar(255,0,0));
+			//Imgproc.line(imageToAnnotate, guitarStrings.get(2).getPoint1(), guitarStrings.get(2).getPoint2(), new Scalar(255,0,0));
+			//Imgproc.line(imageToAnnotate, guitarStrings.get(5).getPoint1(), guitarStrings.get(5).getPoint2(), new Scalar(255,0,0));
 			
 			
 			//guitarStrings.get(0).getPoint1()// .remove(0);//.get(0);
 			//guitarStrings.remove(guitarStrings.size()-1);//.get(guitarStrings.size()-1);
+			
+			if (guitarStrings.size() == 0) return imageToAnnotate;
 			
 			GuitarString endString1 = guitarStrings.get(0);
 			GuitarString endString2 = guitarStrings.get(guitarStrings.size()-1);
@@ -349,19 +351,19 @@ public class Engine {
 			//Point point3 = new Point(processingResolution.width,processingResolution.height);
 			//Point point4 = new Point(0,processingResolution.height);
 			
-			System.out.println(endString1.getYAtXValue((int) processingResolution.width));
+//			System.out.println(endString1.getYAtXValue((int) processingResolution.width));
 			
 			DetectedLine otherLine = new DetectedLine(processingResolution.width, 0.0);
 			
-			System.out.println("COLLIDE");
+//			System.out.println("COLLIDE");
 			Point collideP = endString1.getCollisionPoint(otherLine);
-			System.out.println(collideP.x);
-			System.out.println(collideP.y);
+//			System.out.println(collideP.x);
+//			System.out.println(collideP.y);
 			
-			System.out.println("COLLIDE2");
+//			System.out.println("COLLIDE2");
 			Point collideP2 = endString2.getCollisionPoint(otherLine);
-			System.out.println(collideP2.x);
-			System.out.println(collideP2.y);
+//			System.out.println(collideP2.x);
+//			System.out.println(collideP2.y);
 			
 			Point point1 = new Point(0,endString1.getYIntercept());
 			Point point2 = new Point(processingResolution.width,collideP.y);
@@ -388,9 +390,9 @@ public class Engine {
 			Mat warpMat = Imgproc.getPerspectiveTransform(source, dest);
 			Mat inverseWarpMat = warpMat.inv();//Imgproc.getPerspectiveTransform(dest, source);
 			
-			System.out.println("MATRIX TRANSFORM");
-			System.out.println(warpMat.size().width);
-			System.out.println(warpMat.size().height);
+//			System.out.println("MATRIX TRANSFORM");
+//			System.out.println(warpMat.size().width);
+//			System.out.println(warpMat.size().height);
 			
 			Mat result = new Mat();
 			Imgproc.warpPerspective(imageToProcess, result, warpMat, processingResolution);
@@ -408,7 +410,9 @@ public class Engine {
 			
 			
 			//stringDetector.getGuitarStrings(result, result, edgeDetector, ImageProcessingOptions.DRAWCLUSTERS);
-			ArrayList<DetectedLine> guitarNeckFrets = fretNeckDetector.getGuitarFretsFromNeck(imageToProcess, imageToAnnotate, inverseWarpMat, result, fretNeckEdgeDetector, ImageProcessingOptions.DRAWSELECTEDLINES);
+			
+			//Use this
+			ArrayList<DetectedLine> guitarNeckFrets = fretNeckDetector.getGuitarFretsFromNeck(imageToProcess, imageToAnnotate, inverseWarpMat, result, fretNeckEdgeDetector, ImageProcessingOptions.NOPROCESSING);
 
 			
 			Mat revertBack = new Mat();
@@ -432,7 +436,7 @@ public class Engine {
 			
 			
 			
-			System.out.println("done");
+//			System.out.println("done");
 			
 			
 			

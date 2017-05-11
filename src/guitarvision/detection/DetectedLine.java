@@ -121,8 +121,8 @@ public class DetectedLine implements Comparable<DetectedLine>
 	//Y value of point on this line that intersects the line x = verticalLineXPos
 	public double getYAtXValue(int xValue)
 	{
-		System.out.println("GRADEIENT");
-		System.out.println(getGradient());
+//		System.out.println("GRADEIENT");
+//		System.out.println(getGradient());
 		return (getGradient() * xValue) + getYIntercept();
 	}
 	
@@ -205,30 +205,30 @@ public class DetectedLine implements Comparable<DetectedLine>
 		Mat point1Transformed = new Mat(1, 3, CvType.CV_64F);
 		Mat point2Transformed = new Mat(1, 3, CvType.CV_64F);
 		
-		System.out.println("warp matrix dimensions");
-		System.out.println(warp.width());
-		System.out.println(warp.height());
-		System.out.println(warp.type());
-		System.out.println("point1vectordimensions");
-		System.out.println(point1Vector.width());
-		System.out.println(point1Vector.height());
-		System.out.println(point1Vector.type());
+//		System.out.println("warp matrix dimensions");
+//		System.out.println(warp.width());
+//		System.out.println(warp.height());
+//		System.out.println(warp.type());
+//		System.out.println("point1vectordimensions");
+//		System.out.println(point1Vector.width());
+//		System.out.println(point1Vector.height());
+//		System.out.println(point1Vector.type());
 		
 		Core.gemm(warp, point1Vector, 1, new Mat(), 0, point1Transformed);
 		Core.gemm(warp, point2Vector, 1, new Mat(), 0, point2Transformed);
 		
-		System.out.println("new vector");
-		System.out.println(point1Transformed.width());
-		System.out.println(point1Transformed.height());
-		
-		System.out.println("Before vectors");
-		Engine.getInstance().printMatrix(point1Vector);
-		Engine.getInstance().printMatrix(point2Vector);
-		System.out.println("Warp");
-		Engine.getInstance().printMatrix(warp);
-		System.out.println("After vectors");
-		Engine.getInstance().printMatrix(point1Transformed);
-		Engine.getInstance().printMatrix(point2Transformed);
+//		System.out.println("new vector");
+//		System.out.println(point1Transformed.width());
+//		System.out.println(point1Transformed.height());
+//		
+//		System.out.println("Before vectors");
+//		Engine.getInstance().printMatrix(point1Vector);
+//		Engine.getInstance().printMatrix(point2Vector);
+//		System.out.println("Warp");
+//		Engine.getInstance().printMatrix(warp);
+//		System.out.println("After vectors");
+//		Engine.getInstance().printMatrix(point1Transformed);
+//		Engine.getInstance().printMatrix(point2Transformed);
 		
 		double normalisefactor = point1Transformed.get(2, 0)[0];
 		
