@@ -20,7 +20,9 @@ public class StringDetector {
 	
 	private Scalar stringColour = new Scalar(0,255,0);
 	
-	public ArrayList<GuitarString> getAccurateGuitarStrings(Mat originalImage, Mat imageToAnnotate, ImageProcessingOptions processingOptions)
+	private double previousStringsWeighting = 0.99;
+	
+	public ArrayList<GuitarString> getAccurateGuitarStrings(Mat originalImage, Mat imageToAnnotate, ArrayList<GuitarString> previousStrings, ImageProcessingOptions processingOptions)
 	{
 		HashMap<Integer, ArrayList<GuitarString>> allStrings = new HashMap<Integer, ArrayList<GuitarString>>();
 		Integer highestScore = null;
@@ -37,7 +39,7 @@ public class StringDetector {
 			edgeDetector.setCannyUpperThreshold(cannyUpper);
 			edgeDetector.setHoughThreshold(300);
 			
-			ArrayList<GuitarString> curStrings = getGuitarStrings(originalImage, imageToAnnotate, edgeDetector, ImageProcessingOptions.NOPROCESSING);
+			ArrayList<GuitarString> curStrings = getGuitarStrings(originalImage, imageToAnnotate, edgeDetector, previousStrings, ImageProcessingOptions.NOPROCESSING);
 		
 			int curScore = getSpacingScore(curStrings);
 			
@@ -58,7 +60,7 @@ public class StringDetector {
 			edgeDetector.setCannyUpperThreshold(bestCanny);
 			edgeDetector.setHoughThreshold(houghUpper);
 			
-			ArrayList<GuitarString> curStrings = getGuitarStrings(originalImage, imageToAnnotate, edgeDetector, ImageProcessingOptions.NOPROCESSING);
+			ArrayList<GuitarString> curStrings = getGuitarStrings(originalImage, imageToAnnotate, edgeDetector, previousStrings, ImageProcessingOptions.NOPROCESSING);
 		
 			int curScore = getSpacingScore(curStrings);
 			
@@ -147,7 +149,7 @@ public class StringDetector {
 		return maxBin;
 	}
 	
-	public ArrayList<GuitarString> getGuitarStrings(Mat originalImage, Mat imageToAnnotate, EdgeDetector edgeDetector, ImageProcessingOptions processingOptions)
+	public ArrayList<GuitarString> getGuitarStrings(Mat originalImage, Mat imageToAnnotate, EdgeDetector edgeDetector, ArrayList<GuitarString> previousStrings, ImageProcessingOptions processingOptions)
 	{
 		if (edgeDetector == null)
 		{
@@ -178,15 +180,28 @@ public class StringDetector {
 		//ArrayList<DetectedLine> selectedStrings2 = selectCenterGuitarString(stringGroupings2);
 		
 		
-		ArrayList<DetectedLine> finalStrings = edgeDetector.evenlyDistributeByPairs2(selectedStrings, numberStringsToDetect, Intercept.YINTERCEPT);
+		ArrayList<DetectedLine> filteredStrings = edgeDetector.evenlyDistributeByPairs2(selectedStrings, numberStringsToDetect, Intercept.YINTERCEPT);
 	
 		//PERFORM EVEN DISTRIBUTION BEFORE SORT STRINGS
+		
+		ArrayList<GuitarString> guitarStringsFiltered = new ArrayList<GuitarString>();
+		
+		for(DetectedLine l : filteredStrings)
+		{
+			if (l instanceof GuitarString)
+			{
+				guitarStringsFiltered.add((GuitarString) l);
+			}
+		}
+		
+		ArrayList<GuitarString> finalStrings = trackStrings(guitarStringsFiltered, previousStrings);
+		
 		
 		
 		
 		if((processingOptions == ImageProcessingOptions.DRAWSELECTEDLINES) || (processingOptions == ImageProcessingOptions.DRAWCLUSTERS))
 		{
-			for(DetectedLine string : finalStrings)
+			for(DetectedLine string : filteredStrings)
 			{
 				Imgproc.line(imageToAnnotate, string.getPoint1(), string.getPoint2(), stringColour);
 			}
@@ -208,17 +223,7 @@ public class StringDetector {
 			}
 		}
 		
-		ArrayList<GuitarString> guitarStringsFinal = new ArrayList<GuitarString>();
-		
-		for(DetectedLine l : finalStrings)
-		{
-			if (l instanceof GuitarString)
-			{
-				guitarStringsFinal.add((GuitarString) l);
-			}
-		}
-		
-		return guitarStringsFinal;
+		return finalStrings;
 	}
 	
 	private ArrayList<DetectedLine> getLinesFromParameters(Mat houghLines)
@@ -357,6 +362,25 @@ public class StringDetector {
 		return finalStrings;
 	}
 	
+	public ArrayList<GuitarString> trackStrings(ArrayList<GuitarString> curStrings, ArrayList<GuitarString> previousStrings)
+	{
+		if (previousStrings == null)
+		{
+			return curStrings;
+		}
+		
+		Collections.sort(curStrings);
+		Collections.sort(previousStrings);
+		
+		for(int x = 0; x < curStrings.size() && x < previousStrings.size(); x++)
+		{
+			curStrings.get(x).rho = (curStrings.get(x).rho * (1 - previousStringsWeighting)) + (previousStrings.get(x).rho * previousStringsWeighting);
+			curStrings.get(x).theta = (curStrings.get(x).theta * (1 - previousStringsWeighting)) + (previousStrings.get(x).theta * previousStringsWeighting);
+		}
+		
+		return curStrings;
+	}
+	
 	public void setAngleAllowance(int newAngle)
 	{
 		angleAllowance = newAngle;
@@ -369,12 +393,12 @@ public class StringDetector {
 	
 	public void setNumberOfStringsToDetect(int newNumber)
 	{
-		numberInitialLinesToDetect = newNumber;
+		numberStringsToDetect = newNumber;
 	}
 	
 	public int getNumberOfStringsToDetect()
 	{
-		return numberInitialLinesToDetect;
+		return numberStringsToDetect;
 	}
 }
 

@@ -258,8 +258,8 @@ public class EdgeDetector {
 				}
 		}
 		
-		//Remove those with smallest separation when more than 6 strings
-		while (filteredLines.size () > 6)
+		//Remove those with smallest separation when more than numberOfLinesRequired strings
+		while (filteredLines.size () > numberOfLinesRequired)
 		{
 			double smallestDistance = Double.MAX_VALUE;
 			int smallestIndex = 0;

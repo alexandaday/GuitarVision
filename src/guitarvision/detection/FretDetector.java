@@ -4,6 +4,7 @@ import guitarvision.Engine;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Random;
 
 import org.opencv.core.Core;
@@ -41,6 +42,7 @@ public class FretDetector {
 		
 		originalImage = guitarNeckImage;
 		imageToAnnotate = guitarNeckImage.clone();
+		Mat imageToAnnotate2 = guitarNeckImage.clone();
 		
 		GuitarHeadDetector headDet = new GuitarHeadDetector();
 		
@@ -49,6 +51,59 @@ public class FretDetector {
 		
 		Engine.getInstance().exportImage(imageToAnnotate, "high brightness.png");
 		
+		
+		
+		Imgproc.cvtColor(imageToAnnotate2, imageToAnnotate2, Imgproc.COLOR_BGR2HSV);
+		
+		//MAYBE USE MEDIAN ANGLE FOR SCANNING, ALTHOUGH IS ENSURING PERPENDICULAR TO STRING
+		
+		
+		for(int x = 0; x < imageToAnnotate2.rows(); x ++)
+		{
+			for(int y = 0; y < imageToAnnotate2.cols(); y ++)
+			{
+				double h = imageToAnnotate2.get(x, y)[0];
+				double s = imageToAnnotate2.get(x, y)[1];
+				double v = imageToAnnotate2.get(x, y)[2];
+				//imageToAnnotate2.get(x, y)[1] = 0;
+				//if (imageToAnnotate2.get(x, y)[2] < 140){
+				//	v = 0;
+				//}
+				imageToAnnotate2.put(x, y, new double[] {h,s,v});
+			}
+
+		}
+		
+		double maxTotal = 0;
+		int maxCol = imageToAnnotate2.cols()-1;
+		for(int y = (int) Math.floor(imageToAnnotate2.cols() /2); y < imageToAnnotate2.cols(); y ++)
+		{
+			double columnTotal = 0;
+			for(int x = 0; x < imageToAnnotate2.rows(); x ++)
+			{
+				double h = 0;
+				double s = 0;
+				double v = imageToAnnotate2.get(x, y)[2];
+				columnTotal += v;
+			}
+			if (columnTotal > maxTotal)
+			{
+				maxTotal = columnTotal;
+				maxCol = y;
+			}
+		}
+		
+		for(int x = 0; x < imageToAnnotate2.rows(); x ++)
+		{			
+			imageToAnnotate2.put(x, maxCol, new double[] {0,0,0});
+		}
+		
+		
+		
+		
+		
+		
+		Engine.getInstance().exportImage(imageToAnnotate2, "hsv_one_layer.png");
 		
 		//FIRST FILTER BY ABOVE CERTAIN BRIGHTNESS/VALUE
 		
@@ -63,7 +118,20 @@ public class FretDetector {
 		//System.out.println("Number of lines detected: ");
 		//System.out.println(initialLines.size());
 		
-		//ArrayList<DetectedLine> parallelLines = filterGuitarNeckFrets(initialLines);
+		ArrayList<DetectedLine> parallelLines = filterGuitarNeckFrets(initialLines);
+		
+		
+		
+		
+		
+		//FIND FIRST FRET, cluster and get median separation work out
+		
+		//USE MEDIAN COLOUR OF DETECTED STRINGS, only accept max with this colour - or reject lines no this colour
+		
+		
+		
+		
+		
 		
 		//int noGroups = numberFretsToDetect;
 		
@@ -77,8 +145,8 @@ public class FretDetector {
 		
 		
 		//TESTING
-		ArrayList<DetectedLine> finalFrets = initialLines;
-		ArrayList<DetectedLine> selectedFrets = initialLines;
+		ArrayList<DetectedLine> finalFrets = parallelLines;
+		ArrayList<DetectedLine> selectedFrets = parallelLines;
 		ArrayList<ArrayList<DetectedLine>> fretGroupings = null;
 		//TESTING
 		
@@ -142,7 +210,7 @@ public class FretDetector {
 		{
 			if (!SkinDetector.fretOverlapSkin(neckImage, fret.getPoint1(), fret.getPoint2()))
 			{
-				fretsToRemove.add(fret);
+				//fretsToRemove.add(fret);
 			}
 		}
 		
@@ -150,6 +218,7 @@ public class FretDetector {
 		{
 			finalFrets.remove(fret);
 		}
+		
 		
 		
 		

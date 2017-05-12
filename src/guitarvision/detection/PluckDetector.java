@@ -1,6 +1,18 @@
 package guitarvision.detection;
 
+import guitarvision.Engine;
+
 import java.util.ArrayList;
+import java.util.List;
+
+import org.opencv.core.Core;
+import org.opencv.core.CvType;
+import org.opencv.core.Mat;
+import org.opencv.core.MatOfDouble;
+import org.opencv.core.Point;
+import org.opencv.core.Size;
+import org.opencv.imgproc.Imgproc;
+import org.opencv.utils.Converters;
 
 public class PluckDetector {
 	public ArrayList<GuitarString> initialStrings;
@@ -11,6 +23,115 @@ public class PluckDetector {
 	public PluckDetector(ArrayList<GuitarString> initialStrings)
 	{
 		this.initialStrings = initialStrings;
+	}
+	
+	public Double getBlurScore(Mat image)
+	{
+		Mat convertedImage = new Mat();
+		Imgproc.cvtColor(image, convertedImage, Imgproc.COLOR_RGB2HSV);
+		
+		
+		for(int x = 0; x < convertedImage.rows(); x ++)
+		{
+			for(int y = 0; y < convertedImage.cols(); y ++)
+			{
+				double h = 0;//convertedImage.get(x, y)[0];
+				double s = 0;//convertedImage.get(x, y)[1];
+				double v = convertedImage.get(x, y)[2];
+				//imageToAnnotate2.get(x, y)[1] = 0;
+				//if (imageToAnnotate2.get(x, y)[2] < 140){
+				//	v = 0;
+				//}
+				convertedImage.put(x, y, new double[] {h,s,v});
+			}
+
+		}
+		
+		Mat laplacianResult = new Mat();
+		Imgproc.Laplacian(convertedImage, laplacianResult, CvType.CV_16S);
+		MatOfDouble mean = new MatOfDouble();
+		MatOfDouble stdDev = new MatOfDouble();
+		Core.meanStdDev(laplacianResult, mean, stdDev);
+		
+		Double result = stdDev.empty() ? null : stdDev.get(0, 0)[0];
+		
+		System.out.println(result);
+		
+		return result;
+	}
+	
+	public boolean[] detectStringBlur(ArrayList<GuitarString> strings, Mat originalImage)
+	{
+		for(int x = 0; x < strings.size(); x++)
+		{
+			double curRho = strings.get(x).rho;
+			double nextRho;
+			double difference;
+			if (x == strings.size()-1)
+			{
+				nextRho = strings.get(x-1).rho;
+				difference = curRho - nextRho;
+				
+			}
+			else
+			{
+				nextRho = strings.get(x+1).rho;
+				difference = nextRho - curRho;
+			}
+			
+			DetectedLine startStringLine = new DetectedLine(curRho - (difference / 2), strings.get(x).theta);
+			DetectedLine endStringLine = new DetectedLine(curRho + (difference / 2), strings.get(x).theta);
+			
+			List<Point> sourcePoints = new ArrayList<Point>();
+			
+			double height = Engine.getInstance().processingResolution.height / 4;
+			double width = Engine.getInstance().processingResolution.width;
+			
+			DetectedLine otherLine = new DetectedLine(width, 0.0);
+			
+			Point collideP = startStringLine.getCollisionPoint(otherLine);
+
+			Point collideP2 = endStringLine.getCollisionPoint(otherLine);
+
+			Point point1 = new Point(0,startStringLine.getYIntercept());
+			Point point2 = new Point(width,collideP.y);
+			Point point3 = new Point(width,collideP2.y);
+			Point point4 = new Point(0,endStringLine.getYIntercept());
+			sourcePoints.add(point1);
+			sourcePoints.add(point2);
+			sourcePoints.add(point3);
+			sourcePoints.add(point4);
+			Mat source = Converters.vector_Point2f_to_Mat(sourcePoints);
+
+			List<Point> destPoints = new ArrayList<Point>();
+			Point pointD1 = new Point(0,0);
+			Point pointD2 = new Point(width,0);
+			Point pointD3 = new Point(width,height);
+			Point pointD4 = new Point(0,height);
+			destPoints.add(pointD1);
+			destPoints.add(pointD2);
+			destPoints.add(pointD3);
+			destPoints.add(pointD4);
+			Mat dest = Converters.vector_Point2f_to_Mat(destPoints);
+
+			
+			Mat warpMat = Imgproc.getPerspectiveTransform(source, dest);
+			Mat inverseWarpMat = warpMat.inv();//Imgproc.getPerspectiveTransform(dest, source);
+			
+//			System.out.println("MATRIX TRANSFORM");
+//			System.out.println(warpMat.size().width);
+//			System.out.println(warpMat.size().height);
+			
+			Mat result = new Mat();
+			Imgproc.warpPerspective(originalImage, result, warpMat, new Size(width, height));
+			
+			getBlurScore(result);
+			
+			Engine.getInstance().exportImage(result, "string_"+x+".png");
+			
+		}
+		
+		return null;
 	}
 	
 	public boolean[] detectStringsBeingPlayed(ArrayList<GuitarString> strings)

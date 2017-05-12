@@ -33,7 +33,7 @@ import org.opencv.videoio.Videoio;
 public class Engine {
 	private static Engine instance = null;
 	
-	private Size processingResolution = new Size(960,540);
+	public final Size processingResolution = new Size(960,540);
 	//private Size processingResolution = new Size(1920,1080);
 	
 	public static Engine getInstance()
@@ -75,6 +75,8 @@ public class Engine {
 		double height = processingResolution.height;
 		double fps = guitarVideo.get(Videoio.CAP_PROP_FPS);
 		double codecToUse = guitarVideo.get(Videoio.CAP_PROP_FOURCC);
+		//double fps = guitarVideo.get(Videoio.CAP_PROP_FPS);
+		//double codecToUse = guitarVideo.get(Videoio.CAP_PROP_FOURCC);
 		
 		//Determine the names and relative paths of the output files
 		String outputVideoFileNameWithExtension = "";
@@ -129,6 +131,10 @@ public class Engine {
 		{
 			numberFramesToProcess = 1000;
 		}
+		
+		
+		//numberFramesToProcess = 1000;
+		
 
 		boolean firstFrame = true;
 		
@@ -140,6 +146,8 @@ public class Engine {
 			currentlyHeldNotes.add(null);
 		}
 		
+		ArrayList<GuitarString> previousStrings = null;
+		
 		//Process frames one by one
 		while (guitarVideo.read(currentFrame))
 		{
@@ -148,24 +156,25 @@ public class Engine {
 			
 			frameToAnnotate =  currentFrame.clone();
 			
-			FaceDetector faceDetector = new FaceDetector();
+			//FaceDetector faceDetector = new FaceDetector();
 			
-			frameToAnnotate = faceDetector.getFaces(frameToAnnotate);
+			//frameToAnnotate = faceDetector.getFaces(frameToAnnotate);
 			
 			//METHOD OF TURNING ON AND OFF DETECTION STAGES TO TRY AND IMPROVE SPEED
 			//GIVE USER FEEDBACK AND IMPROVE DETECTION
 			
 			//Detect strings and frets in frame
-			ArrayList<GuitarString> guitarStrings = stringDetector.getGuitarStrings(currentFrame, frameToAnnotate, edgeDetector, ImageProcessingOptions.DRAWSELECTEDLINES);
+			ArrayList<GuitarString> guitarStrings = stringDetector.getGuitarStrings(currentFrame, frameToAnnotate, edgeDetector, previousStrings, ImageProcessingOptions.DRAWCLUSTERS);
 			
 			//ArrayList<GuitarString> guitarStrings = stringDetector.getAccurateGuitarStrings(currentFrame, frameToAnnotate, ImageProcessingOptions.DRAWSELECTEDLINES);
 			
+			previousStrings = guitarStrings;
 			
-			ArrayList<DetectedLine> guitarFrets = fretDetector.getGuitarFrets(currentFrame, frameToAnnotate, guitarStrings, fretEdgeDetector, ImageProcessingOptions.DRAWSELECTEDLINES);
+			ArrayList<DetectedLine> guitarFrets = fretDetector.getGuitarFrets(currentFrame, frameToAnnotate, guitarStrings, fretEdgeDetector, ImageProcessingOptions.NOPROCESSING);
 
 			Mat skin = skinDetector.getSkin(currentFrame);
 			
-			Core.addWeighted(frameToAnnotate, 0.6, skin, 0.4, 1.0, frameToAnnotate);
+			//Core.addWeighted(frameToAnnotate, 0.6, skin, 0.4, 1.0, frameToAnnotate);
 			
 			//Processing of frames after the first frame
 			if (!firstFrame)
@@ -221,8 +230,8 @@ public class Engine {
 							currentFret = Integer.toString(currentNote.note);
 						}
 
-						Imgproc.putText(frameToAnnotate, "String "+Integer.toString(x)+": " + stringsPlayed[x] , new Point((currentFrame.rows() / scaleFactor) * 1 ,(currentFrame.cols() / (scaleFactor)) * (x+1)), Core.FONT_ITALIC, 2.0, new Scalar(255,255,255), 2);
-						Imgproc.putText(frameToAnnotate, "Note : " + currentFret , new Point((currentFrame.rows() / scaleFactor) * 8 ,(currentFrame.cols() / (scaleFactor)) * (x+1)), Core.FONT_ITALIC, 2.0, new Scalar(255,255,255), 2);
+						Imgproc.putText(frameToAnnotate, "String "+Integer.toString(x)+": " + stringsPlayed[x] , new Point((currentFrame.rows() / scaleFactor) * 1 ,(currentFrame.cols() / (scaleFactor)) * (x+1)), Core.FONT_ITALIC, 1.0, new Scalar(255,255,255), 2);
+						Imgproc.putText(frameToAnnotate, "Note : " + currentFret , new Point((currentFrame.rows() / scaleFactor) * 8 ,(currentFrame.cols() / (scaleFactor)) * (x+1)), Core.FONT_ITALIC, 1.0, new Scalar(255,255,255), 2);
 					}
 				}
 			}
@@ -267,7 +276,7 @@ public class Engine {
 		switch(imageNumber)
 		{
 		case 1:
-			filePath = "resources/images/guitar1.png";
+			filePath = "resources/images/vibrate.png";
 			break;
 		case 2:
 			filePath = "resources/images/guitar2.png";
@@ -289,7 +298,7 @@ public class Engine {
 		File file = new File(filePath);
 		
 		Mat imageToProcess = Imgcodecs.imread(file.getPath());
-
+		
 		
 		//Resize image	
 		Imgproc.resize(imageToProcess, imageToProcess, processingResolution);
@@ -311,7 +320,7 @@ public class Engine {
 		
 		
 		
-		
+		ArrayList<GuitarString> previousStrings = null;
 		
 		if (showEdges)
 		{
@@ -325,12 +334,21 @@ public class Engine {
 			
 			if (!autoLevels)
 			{
-				guitarStrings = stringDetector.getGuitarStrings(imageToProcess, imageToAnnotate, edgeDetector, ImageProcessingOptions.DRAWSELECTEDLINES);
+				guitarStrings = stringDetector.getGuitarStrings(imageToProcess, imageToAnnotate, edgeDetector, previousStrings, ImageProcessingOptions.DRAWSELECTEDLINES);
 			}
 			else
 			{
-				guitarStrings = stringDetector.getAccurateGuitarStrings(imageToProcess, imageToAnnotate, ImageProcessingOptions.DRAWSELECTEDLINES);	
+				guitarStrings = stringDetector.getAccurateGuitarStrings(imageToProcess, imageToAnnotate, previousStrings, ImageProcessingOptions.DRAWSELECTEDLINES);	
 			}
+			
+			previousStrings = guitarStrings;
+			
+			
+			PluckDetector pluckDetector = new PluckDetector(guitarStrings);
+			
+			
+			pluckDetector.detectStringBlur(guitarStrings, imageToProcess);
+			
 			
 			//Imgproc.line(imageToAnnotate, guitarStrings.get(2).getPoint1(), guitarStrings.get(2).getPoint2(), new Scalar(255,0,0));
 			//Imgproc.line(imageToAnnotate, guitarStrings.get(5).getPoint1(), guitarStrings.get(5).getPoint2(), new Scalar(255,0,0));
@@ -406,13 +424,13 @@ public class Engine {
 			EdgeDetector fretNeckEdgeDetector = new EdgeDetector();
 			fretNeckEdgeDetector.setCannyLowerThreshold(0);
 			fretNeckEdgeDetector.setCannyUpperThreshold(70);
-			fretNeckEdgeDetector.setHoughThreshold(200);
+			fretNeckEdgeDetector.setHoughThreshold(220);
 			
 			
 			//stringDetector.getGuitarStrings(result, result, edgeDetector, ImageProcessingOptions.DRAWCLUSTERS);
 			
 			//Use this
-			ArrayList<DetectedLine> guitarNeckFrets = fretNeckDetector.getGuitarFretsFromNeck(imageToProcess, imageToAnnotate, inverseWarpMat, result, fretNeckEdgeDetector, ImageProcessingOptions.NOPROCESSING);
+			ArrayList<DetectedLine> guitarNeckFrets = fretNeckDetector.getGuitarFretsFromNeck(imageToProcess, imageToAnnotate, inverseWarpMat, result, fretNeckEdgeDetector, ImageProcessingOptions.DRAWSELECTEDLINES);
 
 			
 			Mat revertBack = new Mat();
