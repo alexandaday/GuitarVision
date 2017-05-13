@@ -9,6 +9,8 @@ import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfDouble;
+import org.opencv.core.MatOfInt;
+import org.opencv.core.MatOfPoint;
 import org.opencv.core.Point;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
@@ -27,28 +29,40 @@ public class PluckDetector {
 		this.initialStrings = initialStrings;
 	}
 	
-	public Double getBlurScore(Mat image, int x)
+	//Assume horizontal line
+	public Double getMeanStringThickness(Mat contourImage)
 	{
-		//Mat convertedImage = new Mat();
-//		Imgproc.cvtColor(image, image, Imgproc.COLOR_RGB2HSV);
-//		
-//		
-//		for(int x1 = 0; x1 < image.rows(); x1 ++)
-//		{
-//			for(int y = 0; y < image.cols(); y ++)
-//			{
-//				double h = image.get(x1, y)[2];
-//				double s = 0;//image.get(x, y)[1];
-//				double v = 0;//image.get(x, y)[2];
-//				//imageToAnnotate2.get(x, y)[1] = 0;
-////				if (image.get(x1, y)[2] < 100){
-////					h = 0;
-////				}
-//				image.put(x1, y, new double[] {h,s,v});
-//			}
-//
-//		}
+		double countWeight = 0.5;
 		
+		int count = 0;
+		int thicknessTotal = 0;
+		for(int x = 0; x < contourImage.cols(); x++)
+		{
+			int minPoint = contourImage.rows() - 1;
+			int maxPoint = 0;
+			boolean anyPoints = false;
+			for(int y = 0; y < contourImage.rows(); y++)
+			{
+				if (contourImage.get(y, x)[0] > 0)
+				{
+					if (y < minPoint) minPoint = y;
+					if (y > maxPoint) maxPoint = y;
+					anyPoints = true;
+				}
+			}
+			if (anyPoints)
+			{
+				thicknessTotal += maxPoint - minPoint;
+				count++;
+			}
+		}
+		double result = 0;
+		if (count > 0) result = (thicknessTotal / count);
+		return result;
+	}
+	
+	public Double getBlurScore(Mat image, int x)
+	{	
 		Imgproc.cvtColor(image, image, Imgproc.COLOR_RGB2GRAY);
 		
 		Imgproc.GaussianBlur(image, image,  new Size(3, 3), 1);
@@ -94,10 +108,84 @@ public class PluckDetector {
 		
 		ArrayList<DetectedLine> filteredLines = filterParallelLines(stringLines);
 		
-		Mat kernel2 = Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, new Size(17,17));
+		Mat kernel2 = Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, new Size(10,10));
 		
 		Imgproc.erode(image, image, kernel2);
 
+		
+		
+		//Structure analysis perimeter
+		
+		List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
+		Imgproc.findContours(image, contours, new Mat(), Imgproc.RETR_LIST, Imgproc.CHAIN_APPROX_SIMPLE);
+		
+		Mat contourImage = image.clone();
+		
+		
+		for(int x1 = 0; x1 < contourImage.rows(); x1 ++)
+		{
+			for(int y = 0; y < contourImage.cols(); y ++)
+			{
+				contourImage.put(x1, y, new double[] {0,0,0});
+			}
+
+		}
+		
+		double maxPerim = 0;
+		MatOfPoint maxContour = null;
+		for(MatOfPoint contour: contours)
+		{
+			double perim = Imgproc.contourArea(contour);
+			if (perim > maxPerim)
+			{
+				maxPerim = perim;
+				maxContour = contour;
+				
+			}
+		}
+		
+		if (maxContour != null)
+		{
+			System.out.println("CONVEX");
+			System.out.println(Imgproc.isContourConvex(maxContour));
+			
+			MatOfInt convexHull = new MatOfInt();
+			Imgproc.convexHull(maxContour, convexHull);
+			
+			ArrayList<MatOfPoint> contoursToDraw = new ArrayList<MatOfPoint>();
+			contoursToDraw.add(maxContour);
+			
+			Imgproc.drawContours(contourImage, contoursToDraw, -1, new Scalar(150,150,150));
+			
+			double thickness = getMeanStringThickness(contourImage);
+			
+			//remove small items
+			if (maxPerim < 4000) thickness = 0;
+			
+			System.out.println("MEAN THICKNESS");
+			System.out.println(thickness);
+			
+			//Imgproc.drawContours(contourImage, hull, -1, new Scalar(150,150,150));
+			
+			//System.out.println("Max perim of convex");
+			//System.out.println(Imgproc.contourArea(convexHull));
+		}
+		
+		System.out.println("Max perim");
+		System.out.println(maxPerim);
+		
+		//contourImage.
+		
+		//Imgproc.drawContours(contourImage, contours, -1, new Scalar(150,150,150));
+		
+		
+//		for(MatOfPoint contour: contours)
+//		{
+//			
+//		}
+		
+		
+		
 		System.out.println("thresh sum");
 		System.out.println(Core.sumElems(image));
 		
@@ -107,6 +195,7 @@ public class PluckDetector {
 		}
 		
 		Engine.getInstance().exportImage(image, "detectlines"+x+".png");
+		Engine.getInstance().exportImage(contourImage, "contours"+x+".png");
 		
 		System.out.println(lines.size());
 		
