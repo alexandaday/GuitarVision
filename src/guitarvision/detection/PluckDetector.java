@@ -25,30 +25,75 @@ public class PluckDetector {
 		this.initialStrings = initialStrings;
 	}
 	
-	public Double getBlurScore(Mat image)
+	public Double getBlurScore(Mat image, int x)
 	{
-		Mat convertedImage = new Mat();
-		Imgproc.cvtColor(image, convertedImage, Imgproc.COLOR_RGB2HSV);
+		//Mat convertedImage = new Mat();
+//		Imgproc.cvtColor(image, image, Imgproc.COLOR_RGB2HSV);
+//		
+//		
+//		for(int x1 = 0; x1 < image.rows(); x1 ++)
+//		{
+//			for(int y = 0; y < image.cols(); y ++)
+//			{
+//				double h = image.get(x1, y)[2];
+//				double s = 0;//image.get(x, y)[1];
+//				double v = 0;//image.get(x, y)[2];
+//				//imageToAnnotate2.get(x, y)[1] = 0;
+////				if (image.get(x1, y)[2] < 100){
+////					h = 0;
+////				}
+//				image.put(x1, y, new double[] {h,s,v});
+//			}
+//
+//		}
+		
+		Imgproc.cvtColor(image, image, Imgproc.COLOR_RGB2GRAY);
+		
+		Imgproc.GaussianBlur(image, image,  new Size(3, 3), 1);
+		
+
+		Mat sobelOutput = new Mat();
+		Imgproc.Sobel(image, sobelOutput, CvType.CV_8UC1, 0, 1);
+		
+		Mat kernel = Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, new Size(5,5));
+		
+		Imgproc.dilate(sobelOutput, sobelOutput, kernel);
 		
 		
-		for(int x = 0; x < convertedImage.rows(); x ++)
+		for(int x1 = 0; x1 < sobelOutput.rows(); x1 ++)
 		{
-			for(int y = 0; y < convertedImage.cols(); y ++)
+			for(int y = 0; y < sobelOutput.cols(); y ++)
 			{
-				double h = 0;//convertedImage.get(x, y)[0];
-				double s = 0;//convertedImage.get(x, y)[1];
-				double v = convertedImage.get(x, y)[2];
-				//imageToAnnotate2.get(x, y)[1] = 0;
-				//if (imageToAnnotate2.get(x, y)[2] < 140){
-				//	v = 0;
-				//}
-				convertedImage.put(x, y, new double[] {h,s,v});
+				double g = sobelOutput.get(x1, y)[0];
+
+				if (g > 10)
+				{
+					g = 255;
+				}
+				else
+				{
+					g = 0;
+				}
+				
+				image.put(x1, y, new double[] {g});
 			}
 
 		}
 		
+		EdgeDetector edgeDetector = new EdgeDetector();
+		
+		Mat lines = edgeDetector.houghTransform(sobelOutput);
+		
+		//CLUSTER INTO TWO GROUPS, IF SUFFICIENT FAR AWAY VIBRATING
+		
+		System.out.println(lines.size());
+		
+		System.out.println(Core.sumElems(sobelOutput));
+		
+		Engine.getInstance().exportImage(sobelOutput, "sobel_"+x+".png");
+		
 		Mat laplacianResult = new Mat();
-		Imgproc.Laplacian(convertedImage, laplacianResult, CvType.CV_16S);
+		Imgproc.Laplacian(sobelOutput, laplacianResult, CvType.CV_16S);
 		MatOfDouble mean = new MatOfDouble();
 		MatOfDouble stdDev = new MatOfDouble();
 		Core.meanStdDev(laplacianResult, mean, stdDev);
@@ -57,7 +102,7 @@ public class PluckDetector {
 		
 		System.out.println(result);
 		
-		return result;
+		return null;
 	}
 	
 	public boolean[] detectStringBlur(ArrayList<GuitarString> strings, Mat originalImage)
@@ -125,7 +170,7 @@ public class PluckDetector {
 			Mat result = new Mat();
 			Imgproc.warpPerspective(originalImage, result, warpMat, new Size(width, height));
 			
-			getBlurScore(result);
+			getBlurScore(result, x);
 			
 			Engine.getInstance().exportImage(result, "string_"+x+".png");
 			

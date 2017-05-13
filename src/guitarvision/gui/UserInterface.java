@@ -265,7 +265,7 @@ public class UserInterface extends Application{
 					Thread processingThread = new Thread(new Runnable() {
 						public void run()
 						{
-							Engine.getInstance().transcribeFromVideo(file, null, null, true);
+							Engine.getInstance().transcribeFromVideo(file, null, null, 4,  true);
 						}
 					});
 					

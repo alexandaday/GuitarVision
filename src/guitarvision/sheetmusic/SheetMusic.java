@@ -10,6 +10,20 @@ public class SheetMusic {
 	//Assume notes play one after the other
 	ArrayList<MusicNote> notes = new ArrayList<MusicNote>();
 	
+	int ticksPerBeat = 4;
+	public int framesPerBeat = 24;
+	public int globalStartFrame = 48;
+
+	public void setInitialFrame(int value)
+	{
+		globalStartFrame = value;
+	}
+	
+	public void setFramesPerBeat(int value)
+	{
+		framesPerBeat = value;
+	}
+	
 	public void addNote(MusicNote note)
 	{
 		notes.add(note);
@@ -20,7 +34,7 @@ public class SheetMusic {
 		File sheetMusicFile = null;
 		try
 		{
-			Sequence midiSequence = new Sequence(javax.sound.midi.Sequence.PPQ, 24);
+			Sequence midiSequence = new Sequence(javax.sound.midi.Sequence.PPQ, ticksPerBeat);
 			
 			Track midiTrack = midiSequence.createTrack();
 			
@@ -31,14 +45,36 @@ public class SheetMusic {
 				ShortMessage noteMessage = new ShortMessage();
 				
 				int midiNote = note.note + note.octave * 12;
+				int startFrame = note.startingFrame;
+				int endFrame = note.getEndingFrame();
 				
-				noteMessage.setMessage(0x90, midiNote, 0x60);
+				int frames = endFrame - startFrame;
 				
-				MidiEvent noteEvent = new MidiEvent(noteMessage, count);
+				int ticks = (int) Math.round(((double)frames / (double) framesPerBeat) * ticksPerBeat);
+				
+				int initialTick = (int) Math.round(((double) (startFrame - globalStartFrame) / (double) framesPerBeat) * ticksPerBeat);
+				
+				System.out.println(ticks);
+				System.out.println(initialTick);
+				
+				
+				//Start of note
+				noteMessage.setMessage(0x90, midiNote, 127);
+				
+				MidiEvent noteEvent = new MidiEvent(noteMessage, initialTick);
+				
+				midiTrack.add(noteEvent);
+
+				//End of note
+				noteMessage = new ShortMessage();
+				noteMessage.setMessage(0x80, midiNote, 127);
+				
+				noteEvent = new MidiEvent(noteMessage, initialTick + ticks);
+				
 				midiTrack.add(noteEvent);
 				
 				//increment based on note length
-				count += 120;
+				count += ticksPerBeat;
 			}
 			
 			//End track

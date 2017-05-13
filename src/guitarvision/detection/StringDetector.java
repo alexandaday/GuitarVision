@@ -13,7 +13,7 @@ import org.opencv.core.TermCriteria;
 import org.opencv.imgproc.Imgproc;
 
 public class StringDetector {	
-	private double angleAllowance = 0.25;
+	private double angleAllowance = 0.35;
 
 	private int numberInitialLinesToDetect = 8;
 	private int numberStringsToDetect = 6;
@@ -180,8 +180,13 @@ public class StringDetector {
 		//ArrayList<DetectedLine> selectedStrings2 = selectCenterGuitarString(stringGroupings2);
 		
 		
-		ArrayList<DetectedLine> filteredStrings = edgeDetector.evenlyDistributeByPairs2(selectedStrings, numberStringsToDetect, Intercept.YINTERCEPT);
+		ArrayList<DetectedLine> filteredStrings = edgeDetector.evenlyDistributeLines(selectedStrings, numberStringsToDetect, Intercept.YINTERCEPT);
 	
+		if (filteredStrings == null)
+		{
+			filteredStrings = new ArrayList<DetectedLine>();
+		}
+		
 		//PERFORM EVEN DISTRIBUTION BEFORE SORT STRINGS
 		
 		ArrayList<GuitarString> guitarStringsFiltered = new ArrayList<GuitarString>();

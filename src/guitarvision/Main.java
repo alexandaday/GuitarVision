@@ -5,6 +5,9 @@ package guitarvision;
 import guitarvision.gui.UserInterface;
 //import guitarvision.sheetmusic.ObjectAlignment;
 
+import guitarvision.sheetmusic.MusicNote;
+import guitarvision.sheetmusic.SheetMusic;
+
 import org.opencv.core.Core;
 
 public class Main
@@ -16,6 +19,27 @@ public class Main
 
 		System.out.println("OpenCV Loaded");
 		
+//		SheetMusic sheetMusic = new SheetMusic();
+//		
+//		MusicNote note1 = new MusicNote(0, 4, 0, 48);
+//		note1.setEndingFrame(48 + 24);
+//		MusicNote note2 = new MusicNote(0, 5, 0, 48+24);
+//		note2.setEndingFrame(48 + 24 + 48);
+//		
+//		MusicNote note3 = new MusicNote(2, 7, 0, 48+48);
+//		note3.setEndingFrame(48 + 24 + 48 + 48);
+//		
+//		MusicNote note4 = new MusicNote(2, 7, 0, 48+(24 * 8));
+//		note4.setEndingFrame(48+(24 * 8)+ (24*8));
+//		
+//		
+//		sheetMusic.addNote(note1);
+//		sheetMusic.addNote(note2);
+//		sheetMusic.addNote(note3);
+//		sheetMusic.addNote(note4);
+//		
+//		sheetMusic.writeFile("miditest");
+//		
 //		ArrayList<Byte> pitches1 = new ArrayList<Byte>();
 //		ArrayList<Byte> pitches2 = new ArrayList<Byte>();
 //		

@@ -16,7 +16,7 @@ import org.opencv.imgproc.Imgproc;
 
 public class FretDetector {
 	public double angleAllowance = 0.05;
-	public double angleAllowanceNeck = 0.15;
+	public double angleAllowanceNeck = 0.1;
 	public int numberFretsToDetect = 20;
 	
 	public ArrayList<DetectedLine> getGuitarFretsFromNeck(Mat originalImage, Mat imageToAnnotate, Mat inverseNeckWarp, Mat guitarNeckImage, EdgeDetector edgeDetector, ImageProcessingOptions processingOptions)
@@ -133,27 +133,34 @@ public class FretDetector {
 		
 		
 		
-		//int noGroups = numberFretsToDetect;
+		int noGroups = numberFretsToDetect;
 		
-		//ArrayList<ArrayList<DetectedLine>> fretGroupings = clusterGuitarFrets(parallelLines, noGroups);
+		ArrayList<ArrayList<DetectedLine>> fretGroupings = clusterGuitarFrets(parallelLines, noGroups);
 		
-		//ArrayList<DetectedLine> selectedFrets = selectEachGuitarFret(fretGroupings);
+		ArrayList<DetectedLine> selectedFrets = selectEachGuitarFret(fretGroupings);
 		
-		//ArrayList<DetectedLine> finalFrets = selectedFrets;//edgeDetector.evenlyDistribute(selectedFrets, numberFretsToDetect, Intercept.XINTERCEPT);
+		Collections.sort(selectedFrets);
+		
+		ArrayList<DetectedLine> finalFrets = edgeDetector.evenlyDistributeLinesExponential(selectedFrets, noGroups, Intercept.XINTERCEPT);//edgeDetector.evenlyDistribute(selectedFrets, numberFretsToDetect, Intercept.XINTERCEPT);
+		
+		if (finalFrets == null)
+		{
+			finalFrets = new ArrayList<DetectedLine>();
+		}
 		
 		//Sort based on x intercept
 		
 		
 		//TESTING
-		ArrayList<DetectedLine> finalFrets = parallelLines;
-		ArrayList<DetectedLine> selectedFrets = parallelLines;
-		ArrayList<ArrayList<DetectedLine>> fretGroupings = null;
+		//ArrayList<DetectedLine> finalFrets = parallelLines;
+		//ArrayList<DetectedLine> selectedFrets = parallelLines;
+		//ArrayList<ArrayList<DetectedLine>> fretGroupings = null;
 		//TESTING
 		
 		
 		
 		
-		Collections.sort(selectedFrets);
+		
 		
 		if((processingOptions == ImageProcessingOptions.DRAWSELECTEDLINES) || (processingOptions == ImageProcessingOptions.DRAWCLUSTERS))
 		{

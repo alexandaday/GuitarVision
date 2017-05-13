@@ -24,8 +24,8 @@ public class EdgeDetector {
 	{
 		Mat blurredImage = image.clone();
 
-		Imgproc.blur(blurredImage, blurredImage, new Size(blurKernelSize, blurKernelSize));
-		//Imgproc.GaussianBlur(image, blurredImage,  new Size(3, 3), 1);
+		//Imgproc.blur(blurredImage, blurredImage, new Size(blurKernelSize, blurKernelSize));
+		Imgproc.GaussianBlur(image, blurredImage,  new Size(blurKernelSize, blurKernelSize), 1);
 		//Imgproc.medianBlur(image, blurredImage, 3);
 
 		Mat detectedEdges = new Mat();
@@ -209,8 +209,10 @@ public class EdgeDetector {
 	}
 	
 	//Assume sorted
-	public ArrayList<DetectedLine> evenlyDistributeByPairs2(ArrayList<DetectedLine> lines, int numberOfLinesRequired, Intercept intercept)
+	public ArrayList<DetectedLine> evenlyDistributeLines(ArrayList<DetectedLine> lines, int numberOfLinesRequired, Intercept intercept)
 	{
+		if (lines.size() == 0) return null;
+		
 		//Calculate mean and median string separation
 		ArrayList<DetectedLine> filteredLines = new ArrayList<DetectedLine>();
 		
@@ -285,6 +287,7 @@ public class EdgeDetector {
 		}
 		
 		
+		//Make strings evenly spaced apart
 		
 		double[] rhoValues = new double[filteredLines.size()];
 		double[] thetaValues = new double[filteredLines.size()];
@@ -323,7 +326,7 @@ public class EdgeDetector {
 			
 			if (!stringExists)
 			{
-				System.out.println("String doesn't exist");
+				//System.out.println("String doesn't exist");
 				filteredLines.get(i).rho = expectedRho;
 				filteredLines.get(i).theta = (filteredLines.get(i).theta + curTheta) / 2;
 			}
@@ -358,6 +361,184 @@ public class EdgeDetector {
 			curRho += medianDistance;
 		}
 	
+		
+		
+		return filteredLines;
+		
+	}
+	
+	public ArrayList<DetectedLine> evenlyDistributeLinesExponential(ArrayList<DetectedLine> lines, int numberOfLinesRequired, Intercept intercept)
+	{
+		
+		if (lines.size() == 0) return null;
+		
+		//Calculate mean and median string separation
+		ArrayList<DetectedLine> filteredLines = new ArrayList<DetectedLine>();
+		
+		double totalDistance = 0;
+		double[] distances = new double[lines.size()-1];
+		
+		for(int compareTo = 0; compareTo < lines.size() - 1; compareTo++)
+		{
+				int x = compareTo + 1;
+						
+				DetectedLine line1 = lines.get(x);
+				DetectedLine line2 = lines.get(compareTo);
+				double distance = line1.rho - line2.rho; //line1.getIntercept(intercept) - line2.getIntercept(intercept)
+				totalDistance += distance;
+				distances[compareTo] = distance;
+		}
+		
+		double averageDistance = totalDistance / lines.size();
+		
+		Arrays.sort(distances);
+		
+		double medianDistance = distances[(int) Math.floor(distances.length /2)];
+		
+		boolean prevAddedBoth = false;
+		
+		
+		//Remove line from pairs which are separated by more than double or less than half the median distance
+		for(int compareTo = 0; compareTo < lines.size() - 1; compareTo++)
+		{
+				int x = compareTo + 1;
+						
+				DetectedLine line1 = lines.get(compareTo);
+				DetectedLine line2 = lines.get(x);
+				double distance = line2.rho - line1.rho;
+				
+				if (!((distance < medianDistance / 8) || (distance > medianDistance * 6)))
+				{
+					if (!prevAddedBoth) filteredLines.add(line1);
+					filteredLines.add(line2);
+					prevAddedBoth = true;
+				}
+				else
+				{
+					prevAddedBoth = false;
+				}
+		}
+		
+		//Remove those with smallest separation when more than numberOfLinesRequired strings
+		while (filteredLines.size () > numberOfLinesRequired)
+		{
+			System.out.println("REMOVING");
+			double smallestDistance = Double.MAX_VALUE;
+			int smallestIndex = 0;
+
+			for(int compareTo = 0; compareTo < filteredLines.size() - 1; compareTo++)
+			{
+				int x = compareTo + 1;
+
+				DetectedLine line1 = filteredLines.get(compareTo);
+				DetectedLine line2 = filteredLines.get(x);
+				double distance = line2.rho - line1.rho; //line1.getIntercept(intercept) - line2.getIntercept(intercept)
+
+				if (distance < smallestDistance)
+				{
+					smallestDistance = distance;
+					smallestIndex = compareTo;
+				}
+
+				//boolean removedLine = false;
+			}
+			
+			filteredLines.remove(smallestIndex);
+		}
+		
+		
+		//Make strings evenly spaced apart
+		
+//		System.out.println(filteredLines.size());
+//		
+//		double[] rhoValues = new double[filteredLines.size()];
+//		double[] thetaValues = new double[filteredLines.size()];
+//		double rhoSum = 0;
+//		int x =  0;
+//		for(DetectedLine line : filteredLines)
+//		{
+//			rhoValues[x] = line.rho;
+//			thetaValues[x] = line.theta;
+//			rhoSum += line.rho;
+//			x++;
+//		}
+//		
+//		double meanRhoValue = rhoSum /filteredLines.size();
+//		
+//		//double middleThetaValue = (thetaValues[thetaValues.length - 1] + thetaValues[0])/2;
+//
+//		//double[] newRhoValues = new double[rhoValues.length];
+//		
+//		int middleIndex = (int) Math.floor(rhoValues.length / 2);
+//		
+//		//double startRho = meanRhoValue - (medianDistance/2);
+//		
+//		double curRho = filteredLines.get(middleIndex).rho;//startRho;
+//		double curTheta = filteredLines.get(middleIndex).theta;
+//		
+//		double tolerance = averageDistance/2;
+//		
+//		for (int i = middleIndex; i >= 0; i--)
+//		{
+//			double expectedRho = curRho;
+//			
+//			double curStringRho = filteredLines.get(i).rho;
+//			
+//			boolean stringExists = (curStringRho < expectedRho + tolerance) && (curStringRho > expectedRho - tolerance);
+//			
+//			if (!stringExists)
+//			{
+//				//System.out.println("String doesn't exist");
+//				filteredLines.get(i).rho = expectedRho;
+//				filteredLines.get(i).theta = (filteredLines.get(i).theta + curTheta) / 2;
+//			}
+//			
+//			
+//			
+//			//filteredLines.get(i).rho = curRho;
+//			//filteredLines.get(i).theta = middleThetaValue;
+//			curRho -= medianDistance;
+//		}
+//		
+//		curRho = filteredLines.get(middleIndex).rho + medianDistance;
+//		
+//		
+//		for (int i = middleIndex + 1; i < rhoValues.length; i++)
+//		{
+//			double expectedRho = curRho;
+//			
+//			double curStringRho = filteredLines.get(i).rho;
+//			
+//			boolean stringExists = (curStringRho < expectedRho + tolerance) && (curStringRho > expectedRho - tolerance);
+//			
+//			if (!stringExists)
+//			{
+//				//System.out.println("String doesn't exist");
+//				filteredLines.get(i).rho = expectedRho;
+//				filteredLines.get(i).theta = (filteredLines.get(i).theta + curTheta) / 2;
+//			}
+//			
+//			//filteredLines.get(i).rho = curRho;
+//			//filteredLines.get(i).theta = middleThetaValue;
+//			curRho += medianDistance;
+//		}
+	
+		
+		//Use mean theta
+		
+		double thetaSum = 0;
+		for(DetectedLine line : filteredLines)
+		{
+			thetaSum += line.theta;
+		}
+		
+		double meanThetaValue = thetaSum/filteredLines.size();
+		double meanWeight = 0.4;
+		
+		for (DetectedLine line: filteredLines)
+		{
+			line.theta = (line.theta * (1 - meanWeight)) + meanThetaValue * meanWeight;
+		}
 		
 		
 		return filteredLines;

@@ -34,7 +34,7 @@ public class Engine {
 	private static Engine instance = null;
 	
 	public final Size processingResolution = new Size(960,540);
-	//private Size processingResolution = new Size(1920,1080);
+	//public final Size processingResolution = new Size(1920,1080);
 	
 	public static Engine getInstance()
 	{
@@ -58,7 +58,7 @@ public class Engine {
 	 * @param writeAnnotatedVideo - whether to produce a video showing the detection modules and processing 
 	 * @return Object containing references to the generated MIDI and video files
 	 */
-	public ProcessedFiles transcribeFromVideo(File videoFile, Integer numberFramesToProcess, String outputDirectoryName, boolean writeAnnotatedVideo)
+	public ProcessedFiles transcribeFromVideo(File videoFile, Integer numberFramesToProcess, String outputDirectoryName, int firstNoteDuration, boolean writeAnnotatedVideo)
 	{
 		VideoCapture guitarVideo = new VideoCapture(videoFile.getPath());
 		
@@ -148,6 +148,8 @@ public class Engine {
 		
 		ArrayList<GuitarString> previousStrings = null;
 		
+		boolean firstNote = true;
+		
 		//Process frames one by one
 		while (guitarVideo.read(currentFrame))
 		{
@@ -204,6 +206,17 @@ public class Engine {
 							MusicNote currentNote = currentlyHeldNotes.get(x);
 
 							currentNote.setEndingFrame(frameNo);
+							
+							if (firstNote = true)
+							{
+								int initialFrame = currentNote.startingFrame;
+								int frameDuration = currentNote.getEndingFrame() - initialFrame;
+								int framesInBeat = (int) Math.round((double) frameDuration / (double) firstNoteDuration);
+								transcribedMusic.setInitialFrame(initialFrame);
+								transcribedMusic.setFramesPerBeat(framesInBeat);
+							}
+							
+							firstNote = false;
 
 							transcribedMusic.addNote(currentNote);
 
