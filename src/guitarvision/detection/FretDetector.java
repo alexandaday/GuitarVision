@@ -11,6 +11,7 @@ import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.Scalar;
+import org.opencv.core.Size;
 import org.opencv.core.TermCriteria;
 import org.opencv.imgproc.Imgproc;
 
@@ -106,6 +107,20 @@ public class FretDetector {
 		Engine.getInstance().exportImage(imageToAnnotate2, "hsv_one_layer.png");
 		
 		//FIRST FILTER BY ABOVE CERTAIN BRIGHTNESS/VALUE
+		
+		
+		
+		Mat verticalLineTest = imageToAnnotate2.clone();
+		//Imgproc.cvtColor(verticalLineTest, verticalLineTest, Imgproc.COLOR_RGB2GRAY);
+		
+		//Imgproc.GaussianBlur(verticalLineTest, verticalLineTest,  new Size(3, 3), 1);
+
+		Mat sobelOutput = new Mat();
+		Imgproc.Sobel(verticalLineTest, sobelOutput, CvType.CV_8UC1, 1, 1);
+		
+		
+		Engine.getInstance().exportImage(sobelOutput, "vertical_edge_fretboard.png");
+		
 		
 		
 		

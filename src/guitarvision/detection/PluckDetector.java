@@ -10,6 +10,7 @@ import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfDouble;
 import org.opencv.core.Point;
+import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.utils.Converters;
@@ -19,6 +20,7 @@ public class PluckDetector {
 	
 	private double scaleFactor = 2;
 	
+	private double angleAllowance = 0.2;
 	
 	public PluckDetector(ArrayList<GuitarString> initialStrings)
 	{
@@ -66,7 +68,7 @@ public class PluckDetector {
 			{
 				double g = sobelOutput.get(x1, y)[0];
 
-				if (g > 10)
+				if (g > 5)
 				{
 					g = 255;
 				}
@@ -81,10 +83,30 @@ public class PluckDetector {
 		}
 		
 		EdgeDetector edgeDetector = new EdgeDetector();
+		edgeDetector.setCannyUpperThreshold(30);
+		edgeDetector.setHoughThreshold(850);
 		
 		Mat lines = edgeDetector.houghTransform(sobelOutput);
 		
 		//CLUSTER INTO TWO GROUPS, IF SUFFICIENT FAR AWAY VIBRATING
+		
+		ArrayList<DetectedLine> stringLines = getLinesFromParameters(lines);
+		
+		ArrayList<DetectedLine> filteredLines = filterParallelLines(stringLines);
+		
+		Mat kernel2 = Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, new Size(17,17));
+		
+		Imgproc.erode(image, image, kernel2);
+
+		System.out.println("thresh sum");
+		System.out.println(Core.sumElems(image));
+		
+		for(DetectedLine line: filteredLines)
+		{
+			//Imgproc.line(image, line.getPoint1(), line.getPoint2(), new Scalar(255,0,0));
+		}
+		
+		Engine.getInstance().exportImage(image, "detectlines"+x+".png");
 		
 		System.out.println(lines.size());
 		
@@ -177,6 +199,50 @@ public class PluckDetector {
 		}
 		
 		return null;
+	}
+	
+	private ArrayList<DetectedLine> getLinesFromParameters(Mat houghLines)
+	{
+		ArrayList<DetectedLine> stringLines = new ArrayList<DetectedLine>();
+
+		for (int lineIndex = 0; lineIndex < houghLines.rows(); lineIndex++)
+		{
+			double[] polarLineParameters = houghLines.get(lineIndex, 0);
+
+			DetectedLine currentString = new DetectedLine(polarLineParameters[0], polarLineParameters[1]);
+
+			stringLines.add(currentString);
+		}
+
+		return stringLines;
+	}
+	
+	private ArrayList<DetectedLine> filterParallelLines(ArrayList<DetectedLine> candidateLines)
+	{
+		double totalAngle = 0;
+
+		for(DetectedLine curLine : candidateLines)
+		{
+			totalAngle += curLine.theta;
+		}
+
+		double averageAngle = totalAngle/candidateLines.size();
+
+		ArrayList<DetectedLine> filteredLines = new ArrayList<DetectedLine>();
+
+		if (candidateLines.size() > 0)
+		{
+
+			for(int a = 0; a < candidateLines.size(); a++)
+			{
+				if (!((candidateLines.get(a).theta > averageAngle + angleAllowance) || (candidateLines.get(a).theta < averageAngle - angleAllowance)))
+				{
+					filteredLines.add(candidateLines.get(a));
+				}
+			}
+		}
+
+		return filteredLines;
 	}
 	
 	public boolean[] detectStringsBeingPlayed(ArrayList<GuitarString> strings)

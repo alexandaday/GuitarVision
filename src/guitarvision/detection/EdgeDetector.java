@@ -20,6 +20,8 @@ public class EdgeDetector {
 	
 	private int houghThreshold = 300;
 	
+	private final double luthierConstant = 17.871;
+	
 	public Mat getEdges(Mat image)
 	{
 		Mat blurredImage = image.clone();
@@ -384,7 +386,7 @@ public class EdgeDetector {
 						
 				DetectedLine line1 = lines.get(x);
 				DetectedLine line2 = lines.get(compareTo);
-				double distance = line1.rho - line2.rho; //line1.getIntercept(intercept) - line2.getIntercept(intercept)
+				double distance = (line1.rho - line2.rho) * (compareTo + 1 ) * (1 / luthierConstant); //line1.getIntercept(intercept) - line2.getIntercept(intercept)
 				totalDistance += distance;
 				distances[compareTo] = distance;
 		}
@@ -449,79 +451,79 @@ public class EdgeDetector {
 		
 		//Make strings evenly spaced apart
 		
-//		System.out.println(filteredLines.size());
-//		
-//		double[] rhoValues = new double[filteredLines.size()];
-//		double[] thetaValues = new double[filteredLines.size()];
-//		double rhoSum = 0;
-//		int x =  0;
-//		for(DetectedLine line : filteredLines)
-//		{
-//			rhoValues[x] = line.rho;
-//			thetaValues[x] = line.theta;
-//			rhoSum += line.rho;
-//			x++;
-//		}
-//		
-//		double meanRhoValue = rhoSum /filteredLines.size();
-//		
-//		//double middleThetaValue = (thetaValues[thetaValues.length - 1] + thetaValues[0])/2;
-//
-//		//double[] newRhoValues = new double[rhoValues.length];
-//		
-//		int middleIndex = (int) Math.floor(rhoValues.length / 2);
-//		
-//		//double startRho = meanRhoValue - (medianDistance/2);
-//		
-//		double curRho = filteredLines.get(middleIndex).rho;//startRho;
-//		double curTheta = filteredLines.get(middleIndex).theta;
-//		
-//		double tolerance = averageDistance/2;
-//		
-//		for (int i = middleIndex; i >= 0; i--)
-//		{
-//			double expectedRho = curRho;
-//			
-//			double curStringRho = filteredLines.get(i).rho;
-//			
-//			boolean stringExists = (curStringRho < expectedRho + tolerance) && (curStringRho > expectedRho - tolerance);
-//			
-//			if (!stringExists)
-//			{
-//				//System.out.println("String doesn't exist");
-//				filteredLines.get(i).rho = expectedRho;
-//				filteredLines.get(i).theta = (filteredLines.get(i).theta + curTheta) / 2;
-//			}
-//			
-//			
-//			
-//			//filteredLines.get(i).rho = curRho;
-//			//filteredLines.get(i).theta = middleThetaValue;
-//			curRho -= medianDistance;
-//		}
-//		
-//		curRho = filteredLines.get(middleIndex).rho + medianDistance;
-//		
-//		
-//		for (int i = middleIndex + 1; i < rhoValues.length; i++)
-//		{
-//			double expectedRho = curRho;
-//			
-//			double curStringRho = filteredLines.get(i).rho;
-//			
-//			boolean stringExists = (curStringRho < expectedRho + tolerance) && (curStringRho > expectedRho - tolerance);
-//			
-//			if (!stringExists)
-//			{
-//				//System.out.println("String doesn't exist");
-//				filteredLines.get(i).rho = expectedRho;
-//				filteredLines.get(i).theta = (filteredLines.get(i).theta + curTheta) / 2;
-//			}
-//			
-//			//filteredLines.get(i).rho = curRho;
-//			//filteredLines.get(i).theta = middleThetaValue;
-//			curRho += medianDistance;
-//		}
+		System.out.println(filteredLines.size());
+		
+		double[] rhoValues = new double[filteredLines.size()];
+		double[] thetaValues = new double[filteredLines.size()];
+		double rhoSum = 0;
+		int x =  0;
+		for(DetectedLine line : filteredLines)
+		{
+			rhoValues[x] = line.rho;
+			thetaValues[x] = line.theta;
+			rhoSum += line.rho;
+			x++;
+		}
+		
+		double meanRhoValue = rhoSum /filteredLines.size();
+		
+		//double middleThetaValue = (thetaValues[thetaValues.length - 1] + thetaValues[0])/2;
+
+		//double[] newRhoValues = new double[rhoValues.length];
+		
+		int middleIndex = (int) Math.floor(rhoValues.length / 2);
+		
+		//double startRho = meanRhoValue - (medianDistance/2);
+		
+		double curRho = filteredLines.get(middleIndex).rho;//startRho;
+		double curTheta = filteredLines.get(middleIndex).theta;
+		
+		double tolerance = averageDistance/2;
+		
+		for (int i = middleIndex; i >= 0; i--)
+		{
+			double expectedRho = curRho;
+			
+			double curStringRho = filteredLines.get(i).rho;
+			
+			boolean stringExists = (curStringRho < expectedRho + tolerance) && (curStringRho > expectedRho - tolerance);
+			
+			if (!stringExists)
+			{
+				//System.out.println("String doesn't exist");
+				filteredLines.get(i).rho = expectedRho;
+				filteredLines.get(i).theta = (filteredLines.get(i).theta + curTheta) / 2;
+			}
+			
+			
+			
+			//filteredLines.get(i).rho = curRho;
+			//filteredLines.get(i).theta = middleThetaValue;
+			curRho -= averageDistance * (1 / luthierConstant);
+		}
+		
+		curRho = filteredLines.get(middleIndex).rho + medianDistance;
+		
+		
+		for (int i = middleIndex + 1; i < rhoValues.length; i++)
+		{
+			double expectedRho = curRho;
+			
+			double curStringRho = filteredLines.get(i).rho;
+			
+			boolean stringExists = (curStringRho < expectedRho + tolerance) && (curStringRho > expectedRho - tolerance);
+			
+			if (!stringExists)
+			{
+				//System.out.println("String doesn't exist");
+				filteredLines.get(i).rho = expectedRho;
+				filteredLines.get(i).theta = (filteredLines.get(i).theta + curTheta) / 2;
+			}
+			
+			//filteredLines.get(i).rho = curRho;
+			//filteredLines.get(i).theta = middleThetaValue;
+			curRho += averageDistance / (1 / luthierConstant);
+		}
 	
 		
 		//Use mean theta
