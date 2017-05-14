@@ -24,7 +24,14 @@ public class PluckDetector {
 	
 	private double angleAllowance = 0.2;
 	
-	public PluckDetector(ArrayList<GuitarString> initialStrings)
+//	public PluckDetector(ArrayList<GuitarString> initialStrings)
+//	{
+//		this.initialStrings = initialStrings;
+//	}
+	
+	
+	
+	public void setInitialStrings(ArrayList<GuitarString> initialStrings)
 	{
 		this.initialStrings = initialStrings;
 	}
@@ -32,8 +39,6 @@ public class PluckDetector {
 	//Assume horizontal line
 	public Double getMeanStringThickness(Mat contourImage)
 	{
-		double countWeight = 0.5;
-		
 		int count = 0;
 		int thicknessTotal = 0;
 		for(int x = 0; x < contourImage.cols(); x++)
@@ -52,35 +57,32 @@ public class PluckDetector {
 			}
 			if (anyPoints)
 			{
-				thicknessTotal += maxPoint - minPoint;
+				thicknessTotal += Math.abs(maxPoint - minPoint);
 				count++;
 			}
 		}
 		double result = 0;
 		if (count > 0) result = (thicknessTotal / count);
+		//System.out.println("COUNT");
+		//System.out.println(count);
+		//System.out.println("Thickness total");
+		//System.out.println(thicknessTotal);
+		//System.out.println("Result");
+		//System.out.println(result);
 		return result;
 	}
 	
-	public Double getBlurScore(Mat image, int x)
+	public Double getBlurScore(Mat image)
 	{	
 		Imgproc.cvtColor(image, image, Imgproc.COLOR_RGB2GRAY);
 		
 		Imgproc.GaussianBlur(image, image,  new Size(3, 3), 1);
-		
 
-		Mat sobelOutput = new Mat();
-		Imgproc.Sobel(image, sobelOutput, CvType.CV_8UC1, 0, 1);
-		
-		Mat kernel = Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, new Size(5,5));
-		
-		Imgproc.dilate(sobelOutput, sobelOutput, kernel);
-		
-		
-		for(int x1 = 0; x1 < sobelOutput.rows(); x1 ++)
+		for(int x1 = 0; x1 < image.rows(); x1 ++)
 		{
-			for(int y = 0; y < sobelOutput.cols(); y ++)
+			for(int y = 0; y < image.cols(); y ++)
 			{
-				double g = sobelOutput.get(x1, y)[0];
+				double g = image.get(x1, y)[0];
 
 				if (g > 5)
 				{
@@ -95,22 +97,10 @@ public class PluckDetector {
 			}
 
 		}
+
+		Mat kernel = Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, new Size(10,10));
 		
-		EdgeDetector edgeDetector = new EdgeDetector();
-		edgeDetector.setCannyUpperThreshold(30);
-		edgeDetector.setHoughThreshold(850);
-		
-		Mat lines = edgeDetector.houghTransform(sobelOutput);
-		
-		//CLUSTER INTO TWO GROUPS, IF SUFFICIENT FAR AWAY VIBRATING
-		
-		ArrayList<DetectedLine> stringLines = getLinesFromParameters(lines);
-		
-		ArrayList<DetectedLine> filteredLines = filterParallelLines(stringLines);
-		
-		Mat kernel2 = Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, new Size(10,10));
-		
-		Imgproc.erode(image, image, kernel2);
+		Imgproc.erode(image, image, kernel);
 
 		
 		
@@ -146,77 +136,62 @@ public class PluckDetector {
 		
 		if (maxContour != null)
 		{
-			System.out.println("CONVEX");
-			System.out.println(Imgproc.isContourConvex(maxContour));
-			
-			MatOfInt convexHull = new MatOfInt();
-			Imgproc.convexHull(maxContour, convexHull);
-			
 			ArrayList<MatOfPoint> contoursToDraw = new ArrayList<MatOfPoint>();
 			contoursToDraw.add(maxContour);
 			
 			Imgproc.drawContours(contourImage, contoursToDraw, -1, new Scalar(150,150,150));
 			
+			//Engine.getInstance().exportImage(contourImage, "contours"+x+".png");
+			
 			double thickness = getMeanStringThickness(contourImage);
 			
 			//remove small items
-			if (maxPerim < 4000) thickness = 0;
+			if (maxPerim < contourImage.cols() * 5) thickness = 0;
 			
-			System.out.println("MEAN THICKNESS");
-			System.out.println(thickness);
 			
-			//Imgproc.drawContours(contourImage, hull, -1, new Scalar(150,150,150));
+			//System.out.println("THRESHOLD");
+			//System.out.println(contourImage.cols() * 5);
+			//System.out.println("PERIMETER");
+			//System.out.println(maxPerim);
+			//System.out.println("THICKNESS");
+			//System.out.println(thickness);
 			
-			//System.out.println("Max perim of convex");
-			//System.out.println(Imgproc.contourArea(convexHull));
+			return thickness;
 		}
 		
-		System.out.println("Max perim");
-		System.out.println(maxPerim);
-		
-		//contourImage.
-		
-		//Imgproc.drawContours(contourImage, contours, -1, new Scalar(150,150,150));
-		
-		
-//		for(MatOfPoint contour: contours)
-//		{
-//			
-//		}
-		
-		
-		
-		System.out.println("thresh sum");
-		System.out.println(Core.sumElems(image));
-		
-		for(DetectedLine line: filteredLines)
-		{
-			//Imgproc.line(image, line.getPoint1(), line.getPoint2(), new Scalar(255,0,0));
-		}
-		
-		Engine.getInstance().exportImage(image, "detectlines"+x+".png");
-		Engine.getInstance().exportImage(contourImage, "contours"+x+".png");
-		
-		System.out.println(lines.size());
-		
-		System.out.println(Core.sumElems(sobelOutput));
-		
-		Engine.getInstance().exportImage(sobelOutput, "sobel_"+x+".png");
-		
-		Mat laplacianResult = new Mat();
-		Imgproc.Laplacian(sobelOutput, laplacianResult, CvType.CV_16S);
-		MatOfDouble mean = new MatOfDouble();
-		MatOfDouble stdDev = new MatOfDouble();
-		Core.meanStdDev(laplacianResult, mean, stdDev);
-		
-		Double result = stdDev.empty() ? null : stdDev.get(0, 0)[0];
-		
-		System.out.println(result);
-		
-		return null;
+		return 0.0;
 	}
 	
-	public boolean[] detectStringBlur(ArrayList<GuitarString> strings, Mat originalImage)
+	double thicknessThresholdFactor = 2;
+	
+	public boolean[] vibratingStrings(ArrayList<GuitarString> strings)
+	{
+		int numberStrings = strings.size();
+		
+		boolean[] stringsBeingPlayed = new boolean [numberStrings];
+		
+		if (strings.size() != initialStrings.size())
+		{
+			return null;
+		}
+		else
+		{
+			for(int x = 0; x < numberStrings; x++)
+			{
+				GuitarString initialString = initialStrings.get(x);
+				GuitarString currentString = strings.get(x);
+
+				if ((currentString.thickness > initialString.thickness * thicknessThresholdFactor) && (currentString.thickness != 0))
+				{
+					stringsBeingPlayed[x] = true;
+				}
+			}
+		}
+		
+		return stringsBeingPlayed;
+	}
+	
+	public void getStringThicknesses(ArrayList<GuitarString> strings, Mat originalImage)
 	{
 		for(int x = 0; x < strings.size(); x++)
 		{
@@ -272,66 +247,14 @@ public class PluckDetector {
 
 			
 			Mat warpMat = Imgproc.getPerspectiveTransform(source, dest);
-			Mat inverseWarpMat = warpMat.inv();//Imgproc.getPerspectiveTransform(dest, source);
-			
-//			System.out.println("MATRIX TRANSFORM");
-//			System.out.println(warpMat.size().width);
-//			System.out.println(warpMat.size().height);
-			
+
 			Mat result = new Mat();
 			Imgproc.warpPerspective(originalImage, result, warpMat, new Size(width, height));
 			
-			getBlurScore(result, x);
+			double newThickness = getBlurScore(result);
 			
-			Engine.getInstance().exportImage(result, "string_"+x+".png");
-			
+			strings.get(x).thickness = newThickness;
 		}
-		
-		return null;
-	}
-	
-	private ArrayList<DetectedLine> getLinesFromParameters(Mat houghLines)
-	{
-		ArrayList<DetectedLine> stringLines = new ArrayList<DetectedLine>();
-
-		for (int lineIndex = 0; lineIndex < houghLines.rows(); lineIndex++)
-		{
-			double[] polarLineParameters = houghLines.get(lineIndex, 0);
-
-			DetectedLine currentString = new DetectedLine(polarLineParameters[0], polarLineParameters[1]);
-
-			stringLines.add(currentString);
-		}
-
-		return stringLines;
-	}
-	
-	private ArrayList<DetectedLine> filterParallelLines(ArrayList<DetectedLine> candidateLines)
-	{
-		double totalAngle = 0;
-
-		for(DetectedLine curLine : candidateLines)
-		{
-			totalAngle += curLine.theta;
-		}
-
-		double averageAngle = totalAngle/candidateLines.size();
-
-		ArrayList<DetectedLine> filteredLines = new ArrayList<DetectedLine>();
-
-		if (candidateLines.size() > 0)
-		{
-
-			for(int a = 0; a < candidateLines.size(); a++)
-			{
-				if (!((candidateLines.get(a).theta > averageAngle + angleAllowance) || (candidateLines.get(a).theta < averageAngle - angleAllowance)))
-				{
-					filteredLines.add(candidateLines.get(a));
-				}
-			}
-		}
-
-		return filteredLines;
 	}
 	
 	public boolean[] detectStringsBeingPlayed(ArrayList<GuitarString> strings)

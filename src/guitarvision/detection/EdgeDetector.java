@@ -353,7 +353,7 @@ public class EdgeDetector {
 			
 			if (!stringExists)
 			{
-				System.out.println("String doesn't exist");
+				//System.out.println("String doesn't exist");
 				filteredLines.get(i).rho = expectedRho;
 				filteredLines.get(i).theta = (filteredLines.get(i).theta + curTheta) / 2;
 			}
@@ -424,7 +424,7 @@ public class EdgeDetector {
 		//Remove those with smallest separation when more than numberOfLinesRequired strings
 		while (filteredLines.size () > numberOfLinesRequired)
 		{
-			System.out.println("REMOVING");
+			//System.out.println("REMOVING");
 			double smallestDistance = Double.MAX_VALUE;
 			int smallestIndex = 0;
 
@@ -451,7 +451,7 @@ public class EdgeDetector {
 		
 		//Make strings evenly spaced apart
 		
-		System.out.println(filteredLines.size());
+		//System.out.println(filteredLines.size());
 		
 		double[] rhoValues = new double[filteredLines.size()];
 		double[] thetaValues = new double[filteredLines.size()];

@@ -188,18 +188,21 @@ public class DetectedLine implements Comparable<DetectedLine>
 	
 	public void applyWarp(Mat warp)
 	{
+		Point p1 = getPoint1();
+		Point p2 = getPoint2();
+		
 		Mat point1Vector = new Mat();
 		
 		point1Vector.create(3, 1, CvType.CV_64F);
-		point1Vector.put(0, 0, point1.x);
-		point1Vector.put(1, 0, point1.y);
+		point1Vector.put(0, 0, p1.x);
+		point1Vector.put(1, 0, p1.y);
 		point1Vector.put(2, 0, 1);
 		
 		Mat point2Vector = new Mat();
 		
 		point2Vector.create(3, 1, CvType.CV_64F);
-		point2Vector.put(0, 0, point2.x);
-		point2Vector.put(1, 0, point2.y);
+		point2Vector.put(0, 0, p2.x);
+		point2Vector.put(1, 0, p2.y);
 		point2Vector.put(2, 0, 1);
 		
 		Mat point1Transformed = new Mat(1, 3, CvType.CV_64F);

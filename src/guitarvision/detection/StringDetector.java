@@ -31,8 +31,8 @@ public class StringDetector {
 		//Find best scoring canny upper threshold
 		for (int cannyUpper = 50; cannyUpper < 400; cannyUpper+=50)
 		{
-			System.out.println("CANNY THRESHOLD");
-			System.out.println(cannyUpper);
+			//System.out.println("CANNY THRESHOLD");
+			//System.out.println(cannyUpper);
 			
 			EdgeDetector edgeDetector = new EdgeDetector();
 			edgeDetector.setCannyLowerThreshold(0);
@@ -143,8 +143,8 @@ public class StringDetector {
 			}
 		}
 		
-		System.out.println("Score");
-		System.out.println(maxBin);
+		//System.out.println("Score");
+		//System.out.println(maxBin);
 		
 		return maxBin;
 	}

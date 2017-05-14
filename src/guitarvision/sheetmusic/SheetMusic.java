@@ -41,7 +41,7 @@ public class SheetMusic {
 			long count = 0;
 			
 			for(MusicNote note: notes)
-			{
+			{	
 				ShortMessage noteMessage = new ShortMessage();
 				
 				int midiNote = note.note + note.octave * 12;
@@ -54,8 +54,8 @@ public class SheetMusic {
 				
 				int initialTick = (int) Math.round(((double) (startFrame - globalStartFrame) / (double) framesPerBeat) * ticksPerBeat);
 				
-				System.out.println(ticks);
-				System.out.println(initialTick);
+				//System.out.println(ticks);
+				//System.out.println(initialTick);
 				
 				
 				//Start of note

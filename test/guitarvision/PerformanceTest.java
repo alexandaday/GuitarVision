@@ -136,8 +136,8 @@ public class PerformanceTest {
 				//System.out.println(sampleVideoDirectory + directory + java.io.File.separator + videoAdress);
 				
 				File videoFile = new File(sampleVideoDirectory + directory + java.io.File.separator + videoAdress);
-
-				ProcessedFiles files = Engine.getInstance().transcribeFromVideo(videoFile, 1000, outputMidi, 4, true);
+				
+				ProcessedFiles files = Engine.getInstance().transcribeFromVideo(videoFile, 1000, outputMidi, 4, false, true);
 				
 				File outputMIDIFile = files.getMidiFile();
 				
