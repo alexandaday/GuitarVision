@@ -318,6 +318,10 @@ public class UserInterface extends Application{
 						public void run()
 						{
 							String noteLength = noteLengthSelect.getValue();
+							if (noteLength == null)
+							{
+								noteLength = "";
+							}
 							int noteTicks = 4;
 							if (noteLength.equals(note1))
 							{

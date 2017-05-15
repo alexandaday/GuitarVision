@@ -17,11 +17,11 @@ import org.opencv.core.Point;
 public class DetectedLine implements Comparable<DetectedLine>
 {
 	//The polar coordinate parameters
-	public double rho;
-	public double theta;
+	private double rho;
+	private double theta;
 	
 	//The distance to extend the line on either side of (x0, y0)
-	protected int length = 2500;
+	protected int length = (int) Engine.getInstance().processingResolution.width * 2;
 	
 	//Store the two end points once they have been calculated
 	private Point point1 = null;
@@ -101,6 +101,28 @@ public class DetectedLine implements Comparable<DetectedLine>
 			computePoints();
 		}
 		return point2;
+	}
+	
+	public double getRho()
+	{
+		return rho;
+	}
+	
+	public double getTheta()
+	{
+		return theta;
+	}
+	
+	public void setRho(double val)
+	{
+		rho = val;
+		computePoints();
+	}
+	
+	public void setTheta(double val)
+	{
+		theta = val;
+		computePoints();
 	}
 	
 	public double getGradient()
@@ -247,10 +269,11 @@ public class DetectedLine implements Comparable<DetectedLine>
 		
 		double newGradient = (point2.y - point1.y) / (point2.x - point1.x);
 		
-		double newTheta = Math.atan(newGradient);
+		double newTheta = Math.atan(-1 / newGradient);
 		double newRho = Math.abs(point1.y - (newGradient * point1.x)) / Math.sqrt((newGradient * newGradient) + 1);	
 		theta = newTheta;
 		rho = newRho;
+		computePoints();
 	}
 	
 	@Override

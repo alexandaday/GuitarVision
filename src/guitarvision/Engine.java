@@ -116,10 +116,10 @@ public class Engine {
 		
 		edgeDetector.setHoughThreshold(300);
 		
-		EdgeDetector fretEdgeDetector = new EdgeDetector();
-		fretEdgeDetector.setCannyLowerThreshold(0);
-		fretEdgeDetector.setCannyUpperThreshold(380);
-		fretEdgeDetector.setHoughThreshold(45);
+//		EdgeDetector fretEdgeDetector = new EdgeDetector();
+//		fretEdgeDetector.setCannyLowerThreshold(0);
+//		fretEdgeDetector.setCannyUpperThreshold(380);
+//		fretEdgeDetector.setHoughThreshold(45);
 		
 		StringDetector stringDetector = new StringDetector();
 		
@@ -154,6 +154,7 @@ public class Engine {
 		}
 		
 		ArrayList<GuitarString> previousStrings = null;
+		ArrayList<DetectedLine> previousFrets = null;
 		
 		boolean firstNote = true;
 		
@@ -184,20 +185,28 @@ public class Engine {
 			//ArrayList<DetectedLine> guitarFrets = fretDetector.getGuitarFrets(currentFrame, frameToAnnotate, guitarStrings, fretEdgeDetector, ImageProcessingOptions.NOPROCESSING);
 
 			
-			FretDetector fretNeckDetector = new FretDetector();
-			EdgeDetector fretNeckEdgeDetector = new EdgeDetector();
-			fretNeckEdgeDetector.setCannyLowerThreshold(0);
-			fretNeckEdgeDetector.setCannyUpperThreshold(70);
-			fretNeckEdgeDetector.setHoughThreshold(220);
+//			FretDetector fretNeckDetector = new FretDetector();
+//			EdgeDetector fretNeckEdgeDetector = new EdgeDetector();
+//			fretNeckEdgeDetector.setCannyLowerThreshold(0);
+//			fretNeckEdgeDetector.setCannyUpperThreshold(70);
+//			fretNeckEdgeDetector.setHoughThreshold(220);
+//
+//			ArrayList<DetectedLine> guitarFrets = fretNeckDetector.getGuitarFrets(currentFrame, frameToAnnotate, guitarStrings, fretNeckEdgeDetector, ImageProcessingOptions.DRAWSELECTEDLINES);
+//			
+			EdgeDetector fretEdgeDetector = new EdgeDetector();
+			fretEdgeDetector.setCannyLowerThreshold(0);
+			fretEdgeDetector.setCannyUpperThreshold(250);
+			fretEdgeDetector.setHoughThreshold(70);
 
-			ArrayList<DetectedLine> guitarFrets = fretNeckDetector.getGuitarFrets(currentFrame, frameToAnnotate, guitarStrings, fretNeckEdgeDetector, ImageProcessingOptions.DRAWSELECTEDLINES);
+			ArrayList<DetectedLine> guitarFrets = fretDetector.getGuitarFrets(currentFrame, frameToAnnotate, guitarStrings, fretEdgeDetector, previousFrets, ImageProcessingOptions.DRAWSELECTEDLINES);
 			
 			
+			previousFrets = guitarFrets;
 			
 			
 			Mat skin = skinDetector.getSkin(currentFrame);
 			
-			//Core.addWeighted(frameToAnnotate, 0.6, skin, 0.4, 1.0, frameToAnnotate);
+			Core.addWeighted(frameToAnnotate, 0.8, skin, 0.2, 1.0, frameToAnnotate);
 			
 			//Processing of frames after the first frame
 			if (!firstFrame)
@@ -214,7 +223,7 @@ public class Engine {
 				
 				if (stringsPlayed != null)
 				{	
-					for(int x = 0; x < stringsPlayed.length; x++)
+					for(int x = 0; x < stringsPlayed.length && x < currentlyHeldNotes.size(); x++)
 					{
 						if (stringsPlayed[x] && currentlyHeldNotes.get(x) == null)
 						{
@@ -234,9 +243,9 @@ public class Engine {
 							{
 								int initialFrame = currentNote.startingFrame;
 								int frameDuration = currentNote.getEndingFrame() - initialFrame;
-								int framesInBeat = (int) Math.round((double) frameDuration / (double) firstNoteDuration);
+								int framesInTick = (int) Math.round((double) frameDuration / (double) firstNoteDuration);
 								transcribedMusic.setInitialFrame(initialFrame);
-								transcribedMusic.setFramesPerBeat(framesInBeat);
+								transcribedMusic.setFramesPerBeat(framesInTick);
 							}
 							
 							firstNote = false;
@@ -372,9 +381,9 @@ public class Engine {
 			EdgeDetector fretEdgeDetector = new EdgeDetector();
 			fretEdgeDetector.setCannyLowerThreshold(0);
 			fretEdgeDetector.setCannyUpperThreshold(250);
-			fretEdgeDetector.setHoughThreshold(200);
+			fretEdgeDetector.setHoughThreshold(70);
 
-			ArrayList<DetectedLine> guitarFrets = fretDetector.getGuitarFrets(imageToProcess, imageToAnnotate, guitarStrings, fretEdgeDetector, ImageProcessingOptions.DRAWSELECTEDLINES);
+			ArrayList<DetectedLine> guitarFrets = fretDetector.getGuitarFrets(imageToProcess, imageToAnnotate, guitarStrings, fretEdgeDetector, null, ImageProcessingOptions.DRAWSELECTEDLINES);
 			
 			
 			

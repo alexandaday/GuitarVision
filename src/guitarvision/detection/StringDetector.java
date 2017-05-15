@@ -20,7 +20,7 @@ public class StringDetector {
 	
 	private Scalar stringColour = new Scalar(0,255,0);
 	
-	private double previousStringsWeighting = 0.99;
+	private double previousStringsWeighting = 0.995;
 	
 	public ArrayList<GuitarString> getAccurateGuitarStrings(Mat originalImage, Mat imageToAnnotate, ArrayList<GuitarString> previousStrings, ImageProcessingOptions processingOptions)
 	{
@@ -206,7 +206,7 @@ public class StringDetector {
 		
 		if((processingOptions == ImageProcessingOptions.DRAWSELECTEDLINES) || (processingOptions == ImageProcessingOptions.DRAWCLUSTERS))
 		{
-			for(DetectedLine string : filteredStrings)
+			for(DetectedLine string : finalStrings)
 			{
 				Imgproc.line(imageToAnnotate, string.getPoint1(), string.getPoint2(), stringColour);
 			}
@@ -253,7 +253,7 @@ public class StringDetector {
 
 		for(DetectedLine curString : candidateStrings)
 		{
-			totalAngle += curString.theta;
+			totalAngle += curString.getTheta();
 		}
 
 		double averageAngle = totalAngle/candidateStrings.size();
@@ -265,7 +265,7 @@ public class StringDetector {
 
 			for(int a = 0; a < candidateStrings.size(); a++)
 			{
-				if (!((candidateStrings.get(a).theta > averageAngle + angleAllowance) || (candidateStrings.get(a).theta < averageAngle - angleAllowance)))
+				if (!((candidateStrings.get(a).getTheta() > averageAngle + angleAllowance) || (candidateStrings.get(a).getTheta() < averageAngle - angleAllowance)))
 				{
 					filteredStrings.add(candidateStrings.get(a));
 				}
@@ -337,7 +337,7 @@ public class StringDetector {
 			
 			for(DetectedLine s : groupedStrings.get(b))
 			{
-				rhoValues.add((Double) s.rho);
+				rhoValues.add((Double) s.getRho());
 			}
 
 			if (rhoValues.size() > 0)
@@ -353,7 +353,7 @@ public class StringDetector {
 
 				for(DetectedLine s : groupedStrings.get(b))
 				{
-					if ((double) middleValue == s.rho)
+					if ((double) middleValue == s.getRho())
 					{
 						GuitarString string = new GuitarString(thickness, s);
 						
@@ -377,10 +377,17 @@ public class StringDetector {
 		Collections.sort(curStrings);
 		Collections.sort(previousStrings);
 		
-		for(int x = 0; x < curStrings.size() && x < previousStrings.size(); x++)
+		if (curStrings.size() >= previousStrings.size())
 		{
-			curStrings.get(x).rho = (curStrings.get(x).rho * (1 - previousStringsWeighting)) + (previousStrings.get(x).rho * previousStringsWeighting);
-			curStrings.get(x).theta = (curStrings.get(x).theta * (1 - previousStringsWeighting)) + (previousStrings.get(x).theta * previousStringsWeighting);
+			for(int x = 0; x < curStrings.size() && x < previousStrings.size(); x++)
+			{
+				curStrings.get(x).setRho((curStrings.get(x).getRho() * (1 - previousStringsWeighting)) + (previousStrings.get(x).getRho() * previousStringsWeighting));
+				curStrings.get(x).setTheta((curStrings.get(x).getTheta() * (1 - previousStringsWeighting)) + (previousStrings.get(x).getTheta() * previousStringsWeighting));
+			}
+		}
+		else
+		{
+			curStrings = previousStrings;
 		}
 		
 		return curStrings;

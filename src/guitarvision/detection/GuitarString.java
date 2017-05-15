@@ -5,7 +5,7 @@ public class GuitarString extends DetectedLine{
 	
 	public GuitarString(double thickness, DetectedLine lineInfo)
 	{
-		super(lineInfo.rho, lineInfo.theta, lineInfo.length);
+		super(lineInfo.getRho(), lineInfo.getTheta(), lineInfo.length);
 		this.thickness = thickness;
 	}
 }

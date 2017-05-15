@@ -39,6 +39,8 @@ public class PluckDetector {
 	//Assume horizontal line
 	public Double getMeanStringThickness(Mat contourImage)
 	{
+		Engine.getInstance().exportImage(contourImage, "examplecontour.png");
+		
 		int count = 0;
 		int thicknessTotal = 0;
 		for(int x = 0; x < contourImage.cols(); x++)
@@ -74,17 +76,58 @@ public class PluckDetector {
 	
 	public Double getBlurScore(Mat image)
 	{	
-		Imgproc.cvtColor(image, image, Imgproc.COLOR_RGB2GRAY);
+		Mat greyImage = new Mat();
+		
+		Imgproc.cvtColor(image, greyImage, Imgproc.COLOR_RGB2GRAY);
+		
+		
+		
+		Imgproc.cvtColor(image, image, Imgproc.COLOR_RGB2HSV);
+		
+		Engine.getInstance().exportImage(image, "croppedimage.png");
 		
 		Imgproc.GaussianBlur(image, image,  new Size(3, 3), 1);
 
+		double greyTotal = 0;
+		
+		
+		Mat valueImage = image.clone();
+		
 		for(int x1 = 0; x1 < image.rows(); x1 ++)
 		{
 			for(int y = 0; y < image.cols(); y ++)
 			{
-				double g = image.get(x1, y)[0];
+				double g = image.get(x1, y)[2];
+				
+				greyTotal += g;
+				
+				valueImage.put(x1, y, new double[] {g,0,0});
+			}
 
-				if (g > 5)
+		}
+		//System.out.println("GREY TOTAL");
+		//System.out.println(greyTotal);
+		
+		MatOfDouble mean = new MatOfDouble();
+		MatOfDouble stddev = new MatOfDouble();
+		Core.meanStdDev(valueImage, mean, stddev);
+		
+		
+		double meanVal = mean.empty() ? null : mean.get(0, 0)[0];
+		double standDevValue = stddev.empty() ? null : stddev.get(0, 0)[0];
+		//System.out.println("MEAN VAL");
+		//System.out.println(meanVal);
+		//System.out.println(standDevValue);
+		
+		double averageGrey = greyTotal / (image.rows() *(image.cols()));
+		
+		for(int x1 = 0; x1 < image.rows(); x1 ++)
+		{
+			for(int y = 0; y < image.cols(); y ++)
+			{
+				double g = image.get(x1, y)[2];
+
+				if (g > (meanVal + standDevValue))
 				{
 					g = 255;
 				}
@@ -93,11 +136,18 @@ public class PluckDetector {
 					g = 0;
 				}
 				
-				image.put(x1, y, new double[] {g});
+				greyImage.put(x1, y, new double[] {g});
 			}
 
 		}
+		
+		//Imgproc.cvtColor(image, image, Imgproc.COLOR_HSV2RGB);
+		//Imgproc.cvtColor(image, image, Imgproc.COLOR_RGB2GRAY);
 
+		image = greyImage;
+		
+		Engine.getInstance().exportImage(image, "thresholdimage.png");
+		
 		Mat kernel = Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, new Size(10,10));
 		
 		Imgproc.erode(image, image, kernel);
@@ -141,7 +191,7 @@ public class PluckDetector {
 			
 			Imgproc.drawContours(contourImage, contoursToDraw, -1, new Scalar(150,150,150));
 			
-			//Engine.getInstance().exportImage(contourImage, "contours"+x+".png");
+			Engine.getInstance().exportImage(contourImage, "contours.png");
 			
 			double thickness = getMeanStringThickness(contourImage);
 			
@@ -195,23 +245,23 @@ public class PluckDetector {
 	{
 		for(int x = 0; x < strings.size(); x++)
 		{
-			double curRho = strings.get(x).rho;
+			double curRho = strings.get(x).getRho();
 			double nextRho;
 			double difference;
 			if (x == strings.size()-1)
 			{
-				nextRho = strings.get(x-1).rho;
+				nextRho = strings.get(x-1).getRho();
 				difference = curRho - nextRho;
 				
 			}
 			else
 			{
-				nextRho = strings.get(x+1).rho;
+				nextRho = strings.get(x+1).getRho();
 				difference = nextRho - curRho;
 			}
 			
-			DetectedLine startStringLine = new DetectedLine(curRho - (difference / 2), strings.get(x).theta);
-			DetectedLine endStringLine = new DetectedLine(curRho + (difference / 2), strings.get(x).theta);
+			DetectedLine startStringLine = new DetectedLine(curRho - (difference / 2), strings.get(x).getTheta());
+			DetectedLine endStringLine = new DetectedLine(curRho + (difference / 2), strings.get(x).getTheta());
 			
 			List<Point> sourcePoints = new ArrayList<Point>();
 			
@@ -252,6 +302,11 @@ public class PluckDetector {
 			Imgproc.warpPerspective(originalImage, result, warpMat, new Size(width, height));
 			
 			double newThickness = getBlurScore(result);
+			
+			//if (x == 5)
+			//{
+			//	System.out.println(newThickness);
+			//}
 			
 			strings.get(x).thickness = newThickness;
 		}

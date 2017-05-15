@@ -20,13 +20,16 @@ import org.opencv.utils.Converters;
 
 public class FretDetector {
 	public double angleAllowance = 0.05;
-	public double angleAllowanceNeck = 0.02;
+	public double angleAllowanceNeck = 0.5;
+	public int initialNumberFretsToDetect = 30;
 	public int numberFretsToDetect = 20;
 	
-	public ArrayList<DetectedLine> getGuitarFrets(Mat imageToProcess, Mat imageToAnnotate, ArrayList<GuitarString> guitarStrings, EdgeDetector edgeDetector, ImageProcessingOptions processingOptions)
+	private double previousFretsWeighting = 0.99;
+	
+	public ArrayList<DetectedLine> getGuitarFrets(Mat imageToProcess, Mat imageToAnnotate, ArrayList<GuitarString> guitarStrings, EdgeDetector edgeDetector, ArrayList<DetectedLine> previousFrets, ImageProcessingOptions processingOptions)
 	{
 		double width = imageToProcess.width();
-		double height = imageToProcess.height();
+		double height = imageToProcess.height()/4;
 		Size resolution = new Size(width, height);
 		
 		GuitarString endString1 = guitarStrings.get(0);
@@ -67,14 +70,19 @@ public class FretDetector {
 		Imgproc.warpPerspective(imageToProcess, guitarNeckImage, warpMat, resolution);
 
 		ArrayList<DetectedLine> guitarNeckFrets = getGuitarFretsFromNeckImage(imageToProcess, imageToAnnotate, inverseWarpMat, guitarNeckImage, edgeDetector, ImageProcessingOptions.DRAWSELECTEDLINES);
-
+		
+		ArrayList<DetectedLine> finalFrets = trackFrets(guitarNeckFrets, previousFrets);
+		
+		
+		
 		//Engine.getInstance().exportImage(guitarNeckImage, "heck.png");
 		
 		if ((processingOptions == ImageProcessingOptions.DRAWSELECTEDLINES) || (processingOptions == ImageProcessingOptions.DRAWCLUSTERS))
 		{
 			int x = 0;
 			Scalar colour = null;
-			for(DetectedLine fret : guitarNeckFrets)
+			
+			for(DetectedLine fret : finalFrets)
 			{
 				if (x % 3 == 0)
 				{
@@ -93,11 +101,12 @@ public class FretDetector {
 					colour = new Scalar(255,0,255);
 				}
 				Imgproc.line(imageToAnnotate, fret.getPoint1(), fret.getPoint2(), colour);
+				
 				x++;
 			}
 		}
 		
-		return guitarNeckFrets;
+		return finalFrets;
 	}
 	
 	
@@ -112,91 +121,10 @@ public class FretDetector {
 		}
 		
 		
-		
-		
-//		Mat originalImageToAnnotate = imageToAnnotate;
-		
-		
-		
-		
-		
-		
-		
-//		originalImage = guitarNeckImage;
-//		imageToAnnotate = guitarNeckImage.clone();
-//		Mat imageToAnnotate2 = guitarNeckImage.clone();
-		
-//		GuitarHeadDetector headDet = new GuitarHeadDetector();
-		
-//		originalImage = headDet.getFrets(originalImage);
-//		imageToAnnotate = headDet.getFrets(imageToAnnotate);
-		
+		Mat hsvImage = new Mat();
+		Imgproc.cvtColor(guitarNeckImage, hsvImage, Imgproc.COLOR_BGR2HSV);
+		//Engine.getInstance().exportImage(hsvImage, "neckImage.png");
 
-//		Imgproc.cvtColor(imageToAnnotate2, imageToAnnotate2, Imgproc.COLOR_BGR2HSV);
-//		
-//		
-//		
-//		//Looking for first fret
-//		
-//		for(int x = 0; x < imageToAnnotate2.rows(); x ++)
-//		{
-//			for(int y = 0; y < imageToAnnotate2.cols(); y ++)
-//			{
-//				double h = imageToAnnotate2.get(x, y)[0];
-//				double s = imageToAnnotate2.get(x, y)[1];
-//				double v = imageToAnnotate2.get(x, y)[2];
-//				imageToAnnotate2.put(x, y, new double[] {h,s,v});
-//			}
-//
-//		}
-//		
-//		double maxTotal = 0;
-//		int maxCol = imageToAnnotate2.cols()-1;
-//		for(int y = (int) Math.floor(imageToAnnotate2.cols() /2); y < imageToAnnotate2.cols(); y ++)
-//		{
-//			double columnTotal = 0;
-//			for(int x = 0; x < imageToAnnotate2.rows(); x ++)
-//			{
-//				double h = 0;
-//				double s = 0;
-//				double v = imageToAnnotate2.get(x, y)[2];
-//				columnTotal += v;
-//			}
-//			if (columnTotal > maxTotal)
-//			{
-//				maxTotal = columnTotal;
-//				maxCol = y;
-//			}
-//		}
-//		
-//		for(int x = 0; x < imageToAnnotate2.rows(); x ++)
-//		{			
-//			imageToAnnotate2.put(x, maxCol, new double[] {0,0,0});
-//		}
-//		
-		
-		
-		
-		
-		
-		//Engine.getInstance().exportImage(imageToAnnotate2, "hsv_one_layer.png");
-		
-		//FIRST FILTER BY ABOVE CERTAIN BRIGHTNESS/VALUE
-		
-		
-		
-//		Mat verticalLineTest = imageToAnnotate2.clone();
-		//Imgproc.cvtColor(verticalLineTest, verticalLineTest, Imgproc.COLOR_RGB2GRAY);
-		
-		//Imgproc.GaussianBlur(verticalLineTest, verticalLineTest,  new Size(3, 3), 1);
-
-//		Mat sobelOutput = new Mat();
-//		Imgproc.Sobel(verticalLineTest, sobelOutput, CvType.CV_8UC1, 1, 1);
-		
-		
-		//Engine.getInstance().exportImage(sobelOutput, "vertical_edge_fretboard.png");
-		
-		
 		Mat cannyProcessedImage = edgeDetector.getEdges(guitarNeckImage);
 		
 		
@@ -213,39 +141,43 @@ public class FretDetector {
 		
 		
 		
-		
-		//FIND FIRST FRET, cluster and get median separation work out
-		
-		//USE MEDIAN COLOUR OF DETECTED STRINGS, only accept max with this colour - or reject lines no this colour
-		
-		
-		
-		
-		
-		
-		int noGroups = numberFretsToDetect;
+		int noGroups = initialNumberFretsToDetect;
 		
 		ArrayList<ArrayList<DetectedLine>> fretGroupings = clusterGuitarFrets(parallelLines, noGroups);
 		
 		ArrayList<DetectedLine> selectedFrets = selectEachGuitarFret(fretGroupings);
 		
+		//System.out.println(selectedFrets.size());
+		
 		Collections.sort(selectedFrets);
 		
-		ArrayList<DetectedLine> finalFrets = initialLines;//edgeDetector.evenlyDistributeLinesExponential(selectedFrets, noGroups, Intercept.XINTERCEPT);//edgeDetector.evenlyDistribute(selectedFrets, numberFretsToDetect, Intercept.XINTERCEPT);
+		ArrayList<DetectedLine> finalFrets = edgeDetector.evenlyDistributeLinesExponential(selectedFrets, numberFretsToDetect, Intercept.XINTERCEPT);//edgeDetector.evenlyDistribute(selectedFrets, numberFretsToDetect, Intercept.XINTERCEPT);
+		
+		//System.out.println("NO frets generated:"+finalFrets.size());
 		
 		if (finalFrets == null)
 		{
 			finalFrets = new ArrayList<DetectedLine>();
 		}
 		
-			Engine.getInstance().exportImage(cannyProcessedImage, "usingnecknow_without.png");
+			//Engine.getInstance().exportImage(cannyProcessedImage, "usingnecknow_without.png");
 		
-				for(DetectedLine fret : finalFrets)
-				{
-					Imgproc.line(cannyProcessedImage, fret.getPoint1(), fret.getPoint2(), new Scalar(150,255,255));
-				}
+//			Mat exportColour = new Mat();
+//			Imgproc.cvtColor(cannyProcessedImage, exportColour, Imgproc.COLOR_GRAY2RGB);
+//				for(DetectedLine fret : parallelLines)
+//				{
+//					Imgproc.line(exportColour, fret.getPoint1(), fret.getPoint2(), new Scalar(200,0,255));
+//				}
+//				for(DetectedLine fret : selectedFrets)
+//				{
+//					Imgproc.line(exportColour, fret.getPoint1(), fret.getPoint2(), new Scalar(255,200,0));
+//				}
+//				
+//				Engine.getInstance().exportImage(exportColour, "usingnecknow.png");
 				
-				Engine.getInstance().exportImage(cannyProcessedImage, "usingnecknow.png");
+//				Mat result = new Mat();
+//				Imgproc.warpPerspective(exportColour, result, inverseNeckWarp, new Size(960,540));
+				//Engine.getInstance().exportImage(result, "warpedimage.png");
 		
 		
 		//Sort based on x intercept
@@ -443,7 +375,7 @@ public class FretDetector {
 
 		for(DetectedLine curString : guitarStrings)
 		{
-			totalStringAngle += curString.theta;
+			totalStringAngle += curString.getTheta();
 		}
 
 		double averageStringAngle = totalStringAngle/guitarStrings.size();
@@ -457,7 +389,7 @@ public class FretDetector {
 
 		for(DetectedLine curString : candidateFrets)
 		{
-			if ((curString.theta > averageStringAngle + perpendicularAllowance) || (curString.theta < averageStringAngle - perpendicularAllowance))
+			if ((curString.getTheta() > averageStringAngle + perpendicularAllowance) || (curString.getTheta() < averageStringAngle - perpendicularAllowance))
 			{
 				perpendicularLines.add(curString);
 			}
@@ -468,7 +400,7 @@ public class FretDetector {
 
 		for(DetectedLine curString : perpendicularLines)
 		{
-			totalAngle += curString.theta;
+			totalAngle += curString.getTheta();
 		}
 
 		double averageAngle = totalAngle/perpendicularLines.size();
@@ -480,7 +412,7 @@ public class FretDetector {
 
 			for(int a = 0; a < perpendicularLines.size(); a++)
 			{
-				if (!((perpendicularLines.get(a).theta > averageAngle + angleAllowance) || (perpendicularLines.get(a).theta < averageAngle - angleAllowance)))
+				if (!((perpendicularLines.get(a).getTheta() > averageAngle + angleAllowance) || (perpendicularLines.get(a).getTheta() < averageAngle - angleAllowance)))
 				{
 					filteredStrings.add(perpendicularLines.get(a));
 				}
@@ -492,25 +424,13 @@ public class FretDetector {
 	
 	private ArrayList<DetectedLine> filterGuitarNeckFrets(ArrayList<DetectedLine> candidateFrets)
 	{
-		double totalAngle = 0;
-
-		for(DetectedLine curFret : candidateFrets)
-		{
-			double curAngle = curFret.theta;
-			//double curAngleAroundZero = (curAngle > Math.PI) ? curAngle - (2 * Math.PI) : curAngle;
-			totalAngle += curFret.theta;//curAngleAroundZero;
-		}
-
-		double averageAngle = totalAngle % (Math.PI * 2)/candidateFrets.size();
-		System.out.println(averageAngle);
-
 		ArrayList<DetectedLine> filteredStrings = new ArrayList<DetectedLine>();
 
 		for(int a = 0; a < candidateFrets.size(); a++)
 		{
-			double curAngle = candidateFrets.get(a).theta;
-			double currentAngleAroundZero = (curAngle > Math.PI) ? curAngle - (2 * Math.PI) : curAngle;
-			if (!((currentAngleAroundZero > averageAngle + angleAllowanceNeck) || (currentAngleAroundZero < averageAngle - angleAllowanceNeck)))
+			double curAngle = candidateFrets.get(a).getTheta();
+			double currentAngleAroundZero = (curAngle > Math.PI / 2) ? curAngle - (Math.PI) : curAngle;
+			if (!((currentAngleAroundZero > angleAllowanceNeck) || (currentAngleAroundZero < -angleAllowanceNeck)))
 			{
 				filteredStrings.add(candidateFrets.get(a));
 			}
@@ -521,14 +441,14 @@ public class FretDetector {
 
 	private ArrayList<ArrayList<DetectedLine>> clusterGuitarFrets(ArrayList<DetectedLine> filteredStrings, int noGroups)
 	{
-		//Create matrix to cluster with the y intercepts of all lines
+		//Create matrix to cluster with the x intercepts of all lines
 		Mat linesToCluster = new Mat(filteredStrings.size(), 1, CvType.CV_32F);
 
 		for(int a = 0; a < filteredStrings.size(); a++)
 		{
 			DetectedLine curString = filteredStrings.get(a);
-			double yIntercept = curString.rho / Math.sin(curString.theta);
-			linesToCluster.put(a, 0, yIntercept);
+			double xIntercept = curString.getXIntercept();
+			linesToCluster.put(a, 0, xIntercept);
 		}
 
 		Mat clusterLabels = new Mat();
@@ -544,7 +464,7 @@ public class FretDetector {
 		}
 		
 		
-		Core.kmeans(linesToCluster, noGroups, clusterLabels, new TermCriteria(TermCriteria.COUNT, 50, 1), 10, Core.KMEANS_RANDOM_CENTERS);
+		Core.kmeans(linesToCluster, noGroups, clusterLabels, new TermCriteria(TermCriteria.COUNT, 5, 1), 20, Core.KMEANS_RANDOM_CENTERS);
 		
 		ArrayList<ArrayList<DetectedLine>> groupedStrings = new ArrayList<ArrayList<DetectedLine>>();
 
@@ -577,7 +497,7 @@ public class FretDetector {
 			
 			for(DetectedLine s : groupedStrings.get(b))
 			{
-				rhoValues.add((Double) s.rho);
+				rhoValues.add((Double) s.getRho());
 			}
 
 			if (rhoValues.size() > 0)
@@ -588,7 +508,7 @@ public class FretDetector {
 
 				for(DetectedLine s : groupedStrings.get(b))
 				{
-					if ((double) middleValue == s.rho)
+					if ((double) middleValue == s.getRho())
 					{
 						finalStrings.add(s);
 						break;
@@ -600,6 +520,38 @@ public class FretDetector {
 		return finalStrings;
 	}
 	
+	public ArrayList<DetectedLine> trackFrets(ArrayList<DetectedLine> curFrets, ArrayList<DetectedLine> previousFrets)
+	{
+		if (previousFrets == null)
+		{
+			return curFrets;
+		}
+		
+		Collections.sort(curFrets);
+		Collections.sort(previousFrets);
+		
+		ArrayList<DetectedLine> newFrets = new ArrayList<DetectedLine>();
+		
+		if (curFrets.size() >= previousFrets.size())
+		{
+			for(int x = 0; x < curFrets.size() && x < previousFrets.size(); x++)
+			{
+				
+				double newRho = (curFrets.get(x).getRho() * (1 - previousFretsWeighting)) + (previousFrets.get(x).getRho() * previousFretsWeighting);
+				double newTheta = (curFrets.get(x).getTheta() * (1 - previousFretsWeighting)) + (previousFrets.get(x).getTheta() * previousFretsWeighting);
+
+				DetectedLine newFret = new DetectedLine(newRho, newTheta);
+				newFrets.add(newFret);
+			}
+		}
+		else
+		{
+			newFrets = previousFrets;
+		}
+		
+		return newFrets;
+	}
+	
 	public void setAngleAllowance(int newAngle)
 	{
 		angleAllowance = newAngle;
@@ -607,6 +559,6 @@ public class FretDetector {
 	
 	public void setNumberOfStringsToDetect(int newNumber)
 	{
-		numberFretsToDetect = newNumber;
+		initialNumberFretsToDetect = newNumber;
 	}
 }
