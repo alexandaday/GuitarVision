@@ -22,8 +22,6 @@ public class PluckDetector {
 	
 	private double scaleFactor = 2;
 	
-	private double angleAllowance = 0.2;
-	
 //	public PluckDetector(ArrayList<GuitarString> initialStrings)
 //	{
 //		this.initialStrings = initialStrings;
@@ -87,47 +85,24 @@ public class PluckDetector {
 		Engine.getInstance().exportImage(image, "croppedimage.png");
 		
 		Imgproc.GaussianBlur(image, image,  new Size(3, 3), 1);
-
-		double greyTotal = 0;
 		
 		
-		Mat valueImage = image.clone();
+		Mat sobelOutput = new Mat();
+		Imgproc.Sobel(greyImage, sobelOutput, CvType.CV_8UC1, 0, 1);
 		
-		for(int x1 = 0; x1 < image.rows(); x1 ++)
-		{
-			for(int y = 0; y < image.cols(); y ++)
-			{
-				double g = image.get(x1, y)[2];
-				
-				greyTotal += g;
-				
-				valueImage.put(x1, y, new double[] {g,0,0});
-			}
-
-		}
-		//System.out.println("GREY TOTAL");
-		//System.out.println(greyTotal);
+		Mat kernelD = Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, new Size(5,5));
 		
-		MatOfDouble mean = new MatOfDouble();
-		MatOfDouble stddev = new MatOfDouble();
-		Core.meanStdDev(valueImage, mean, stddev);
+		Imgproc.dilate(sobelOutput, sobelOutput, kernelD);
 		
-		
-		double meanVal = mean.empty() ? null : mean.get(0, 0)[0];
-		double standDevValue = stddev.empty() ? null : stddev.get(0, 0)[0];
-		//System.out.println("MEAN VAL");
-		//System.out.println(meanVal);
-		//System.out.println(standDevValue);
-		
-		double averageGrey = greyTotal / (image.rows() *(image.cols()));
+		Engine.getInstance().exportImage(sobelOutput, "sobel.png");
 		
 		for(int x1 = 0; x1 < image.rows(); x1 ++)
 		{
 			for(int y = 0; y < image.cols(); y ++)
 			{
-				double g = image.get(x1, y)[2];
-
-				if (g > (meanVal + standDevValue))
+				double g = sobelOutput.get(x1, y)[0];
+				
+				if (g > 10)
 				{
 					g = 255;
 				}
@@ -141,18 +116,17 @@ public class PluckDetector {
 
 		}
 		
-		//Imgproc.cvtColor(image, image, Imgproc.COLOR_HSV2RGB);
-		//Imgproc.cvtColor(image, image, Imgproc.COLOR_RGB2GRAY);
+		Engine.getInstance().exportImage(greyImage, "sobel_2.png");
 
 		image = greyImage;
 		
 		Engine.getInstance().exportImage(image, "thresholdimage.png");
 		
-		Mat kernel = Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, new Size(10,10));
+		Mat kernel = Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, new Size(8,8));
 		
 		Imgproc.erode(image, image, kernel);
 
-		
+		Engine.getInstance().exportImage(image, "eroded.png");
 		
 		//Structure analysis perimeter
 		
@@ -212,7 +186,7 @@ public class PluckDetector {
 		return 0.0;
 	}
 	
-	double thicknessThresholdFactor = 2;
+	double thicknessThresholdFactor = 1.14;
 	
 	public boolean[] vibratingStrings(ArrayList<GuitarString> strings)
 	{
@@ -230,6 +204,17 @@ public class PluckDetector {
 			{
 				GuitarString initialString = initialStrings.get(x);
 				GuitarString currentString = strings.get(x);
+				
+//				if (x == 2)
+//				{
+//					System.out.println("Initial thickness");
+//					System.out.println(initialString.thickness);
+//					System.out.println("Current thickness");
+//					System.out.println(currentString.thickness);
+//					System.out.println("Must surpass");
+//					System.out.println(initialString.thickness * thicknessThresholdFactor);
+//					
+//				}
 
 				if ((currentString.thickness > initialString.thickness * thicknessThresholdFactor) && (currentString.thickness != 0))
 				{
@@ -265,12 +250,27 @@ public class PluckDetector {
 			
 			if (frets != null && frets.size() > 0)
 			{
-				fretSpanStart = frets.get(0).getIntercept(Intercept.XINTERCEPT);
-				System.out.println("Start");
-				System.out.println(fretSpanStart);
-				System.out.println(frets.get(0).getRho());
-				System.out.println(frets.get(0).getTheta());
-				fretSpanEnd = frets.get(frets.size()-1).getIntercept(Intercept.XINTERCEPT);
+				GuitarString curString = strings.get(x);
+				
+				Point collideWithFret1 = frets.get(frets.size()-1).getCollisionPoint(curString);
+				Point collideWithFret2 = frets.get(0).getCollisionPoint(curString);
+				
+				double width = Math.abs(collideWithFret2.x - collideWithFret1.x);
+				
+				fretSpanStart = collideWithFret1.x - (width / 3);
+				
+				if (fretSpanStart < 0) fretSpanStart = 0;
+				
+				fretSpanEnd = collideWithFret2.x - (width / 3);
+				
+				if (fretSpanStart - fretSpanEnd == 0)
+				{
+					fretSpanStart = 0;
+					fretSpanEnd = Engine.getInstance().processingResolution.width;
+				}
+
+				//System.out.println(fretSpanStart);
+				//System.out.println(fretSpanEnd);
 			}
 			
 			DetectedLine startStringLine = new DetectedLine(curRho - (difference / 2), strings.get(x).getTheta());
@@ -278,19 +278,26 @@ public class PluckDetector {
 			
 			List<Point> sourcePoints = new ArrayList<Point>();
 			
-			double height = Engine.getInstance().processingResolution.height / 4;
-			double width = Engine.getInstance().processingResolution.width;
+			double height = Engine.getInstance().processingResolution.height / 2;
+			double width = Math.abs(fretSpanEnd - fretSpanStart);//Engine.getInstance().processingResolution.width;
 			
-			DetectedLine otherLine = new DetectedLine(width, 0.0);
+			DetectedLine otherLine = new DetectedLine(fretSpanEnd, 0.0);
+			
+			DetectedLine startLine = new DetectedLine(fretSpanStart, 0.0);
 			
 			Point collideP = startStringLine.getCollisionPoint(otherLine);
 
 			Point collideP2 = endStringLine.getCollisionPoint(otherLine);
+			
+			Point collideS = startStringLine.getCollisionPoint(startLine);
 
-			Point point1 = new Point(fretSpanStart,startStringLine.getYIntercept());
-			Point point2 = new Point(width,collideP.y);
-			Point point3 = new Point(width,collideP2.y);
-			Point point4 = new Point(fretSpanStart,endStringLine.getYIntercept());
+			Point collideS2 = endStringLine.getCollisionPoint(startLine);
+			
+
+			Point point1 = new Point(fretSpanStart,collideS.y);
+			Point point2 = new Point(fretSpanEnd,collideP.y);
+			Point point3 = new Point(fretSpanEnd,collideP2.y);
+			Point point4 = new Point(fretSpanStart,collideS2.y);
 			sourcePoints.add(point1);
 			sourcePoints.add(point2);
 			sourcePoints.add(point3);
@@ -316,7 +323,7 @@ public class PluckDetector {
 			
 			double newThickness = getBlurScore(result);
 			
-			//if (x == 5)
+			//if (x == 0)
 			//{
 			//	System.out.println(newThickness);
 			//}

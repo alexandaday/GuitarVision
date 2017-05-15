@@ -20,7 +20,7 @@ public class StringDetector {
 	
 	private Scalar stringColour = new Scalar(0,255,0);
 	
-	private double previousStringsWeighting = 0.995;
+	private double previousStringsWeighting = 0.95;
 	
 	public ArrayList<GuitarString> getAccurateGuitarStrings(Mat originalImage, Mat imageToAnnotate, ArrayList<GuitarString> previousStrings, ImageProcessingOptions processingOptions)
 	{

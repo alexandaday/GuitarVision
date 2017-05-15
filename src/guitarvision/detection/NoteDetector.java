@@ -15,7 +15,7 @@ public class NoteDetector {
 		
 	}
 	
-	public MusicNote getNote(Mat frame, int frameNumber, Mat skin, int vibratingStringNo, ArrayList<GuitarString> guitarStrings, ArrayList<DetectedLine> guitarFrets)
+	public MusicNote getNote(Mat frame, Mat frameToAnnotate, int frameNumber, Mat skin, int vibratingStringNo, ArrayList<GuitarString> guitarStrings, ArrayList<DetectedLine> guitarFrets)
 	{
 		//Return open string for me
 		//MusicNote note = new MusicNote(0, 4, 2, frameNumber);
@@ -40,6 +40,7 @@ public class NoteDetector {
 		Scalar colour1 = new Scalar(255,0,0);
 		Scalar colour2 = new Scalar(0,255,0);
 		Scalar colour3 = new Scalar(0,0,255);
+		Scalar colour4 = new Scalar(255,255,255);
 		
 		Scalar colour;
 		
@@ -63,9 +64,7 @@ public class NoteDetector {
 			{
 				colour = colour3;
 			}
-			
-			Imgproc.line(frame, startPoint, endPoint, colour);
-			
+
 			alternateColours = (alternateColours + 1) % 3;
 			
 			overlapping = SkinDetector.fretOverlapSkin(skin, startPoint, endPoint);
@@ -73,16 +72,18 @@ public class NoteDetector {
 			if (overlapping)
 			{
 				startedOverlapping = true;
-				//System.out.println("Overlapping on fret");
-				//System.out.println(x);
+//				System.out.println("Overlapping on fret");
+//				System.out.println(x);
+				Imgproc.line(frameToAnnotate, startPoint, endPoint, colour4);
+			}
+			else
+			{
+				Imgproc.line(frameToAnnotate, startPoint, endPoint, colour);
 			}
 			if (startedOverlapping && !overlapping)
 			{
-				//System.out.println("Stopped overlapping");
-				//System.out.println(x);
-				
+//				System.out.println("Drawing");
 				fretPlaying = x;
-				Imgproc.line(frame, startPoint, endPoint, new Scalar(255,0,0));
 				
 				break;
 			}
@@ -126,7 +127,7 @@ public class NoteDetector {
 		int additionalNotes = (fretPlaying % 12);
 		int additionalOctaves = Math.floorDiv(fretPlaying, 12);
 		
-		note += additionalNotes;
+		note = (note + additionalNotes) % 12;
 		octave += additionalOctaves;
 		
 		MusicNote musicNote = new MusicNote(note, octave, vibratingStringNo, frameNumber);

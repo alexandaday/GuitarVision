@@ -316,7 +316,7 @@ public class FretDetector {
 		
 		
 		Collections.sort(selectedFrets);
-		
+
 		if((processingOptions == ImageProcessingOptions.DRAWSELECTEDLINES) || (processingOptions == ImageProcessingOptions.DRAWCLUSTERS))
 		{
 			Scalar colour;

@@ -2,6 +2,8 @@ package guitarvision.gui;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfByte;
@@ -343,6 +345,10 @@ public class UserInterface extends Application{
 							{
 								noteTicks = 1; 
 							}
+							System.out.println("Processing Video");
+							SimpleDateFormat format = new SimpleDateFormat("HH:mm:ss");
+							Date date = new Date();
+							System.out.println(format.format(date));
 							Engine.getInstance().transcribeFromVideo(file, null, null, noteTicks, checkBoxLighting.isSelected(), true);
 						}
 					});

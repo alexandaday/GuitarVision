@@ -1,7 +1,10 @@
 package guitarvision;
 
 import java.io.File;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 
 import guitarvision.detection.EdgeDetector;
@@ -29,6 +32,7 @@ import org.opencv.videoio.VideoCapture;
 import org.opencv.videoio.VideoWriter;
 import org.opencv.videoio.Videoio;
 
+
 public class Engine {
 	private static Engine instance = null;
 	
@@ -47,6 +51,40 @@ public class Engine {
 	public void exportImage(Mat image, String fileName)
 	{
 		Imgcodecs.imwrite(fileName, image);
+	}
+	
+	public String intToMusicalNote(int value)
+	{
+		//System.out.println(value);
+		switch(value)
+		{
+		case 0:
+			return "C";
+		case 1:
+			return "C#";
+		case 2:
+			return "D";
+		case 3:
+			return "D#";
+		case 4:
+			return "E";
+		case 5:
+			return "F";
+		case 6:
+			return "F#";
+		case 7:
+			return "G";
+		case 8:
+			return "G#";
+		case 9:
+			return "A";
+		case 10:
+			return "A#";
+		case 11:
+			return "B";
+		default:
+			return Integer.toString(value);
+		}
 	}
 	
 	/**
@@ -180,6 +218,7 @@ public class Engine {
 
 			ArrayList<DetectedLine> guitarFrets = fretDetector.getGuitarFrets(currentFrame, frameToAnnotate, guitarStrings, fretEdgeDetector, previousFrets, ImageProcessingOptions.DRAWSELECTEDLINES);
 			
+			Collections.reverse(guitarFrets);
 			
 			pluckDetector.getStringThicknesses(guitarStrings, guitarFrets, currentFrame);
 			
@@ -210,7 +249,7 @@ public class Engine {
 						if (stringsPlayed[x] && currentlyHeldNotes.get(x) == null)
 						{
 							//Create new note object
-							MusicNote notePlayed = noteDetector.getNote(currentFrame, frameNo, skin, x, guitarStrings, guitarFrets);
+							MusicNote notePlayed = noteDetector.getNote(currentFrame, frameToAnnotate, frameNo, skin, x, guitarStrings, guitarFrets);
 
 							currentlyHeldNotes.set(x, notePlayed);
 						}
@@ -249,16 +288,16 @@ public class Engine {
 					MusicNote currentNote;
 					for(int x = 0; x < stringDetector.getNumberOfStringsToDetect(); x++)
 					{
-						String currentFret = "NONE";
+						String currentSemitone = "NONE";
 						
 						if (currentlyHeldNotes.get(x) != null)
 						{
 							currentNote = currentlyHeldNotes.get(x);
-							currentFret = Integer.toString(currentNote.note);
+							currentSemitone = intToMusicalNote(currentNote.note);
 						}
 
 						Imgproc.putText(frameToAnnotate, "String "+Integer.toString(x)+": " + stringsPlayed[x] , new Point((currentFrame.rows() / scaleFactor) * 1 ,(currentFrame.cols() / (scaleFactor)) * (x+1)), Core.FONT_ITALIC, 1.0, new Scalar(255,255,255), 2);
-						Imgproc.putText(frameToAnnotate, "Note : " + currentFret , new Point((currentFrame.rows() / scaleFactor) * 8 ,(currentFrame.cols() / (scaleFactor)) * (x+1)), Core.FONT_ITALIC, 1.0, new Scalar(255,255,255), 2);
+						Imgproc.putText(frameToAnnotate, "Note : " + currentSemitone , new Point((currentFrame.rows() / scaleFactor) * 8 ,(currentFrame.cols() / (scaleFactor)) * (x+1)), Core.FONT_ITALIC, 1.0, new Scalar(255,255,255), 2);
 					}
 				}
 			}
@@ -290,6 +329,9 @@ public class Engine {
 		ProcessedFiles results = new ProcessedFiles(outputFile, midiFile);
 		
 		System.out.println("Processing Video Complete");
+		SimpleDateFormat format = new SimpleDateFormat("HH:mm:ss");
+		Date date = new Date();
+		System.out.println(format.format(date));
 		
 		return results;
 	}
@@ -401,7 +443,7 @@ public class Engine {
 			
 			for (int x = 0; x < stringDetector.getNumberOfStringsToDetect(); x++)
 			{
-				MusicNote notePlayed = noteDetector.getNote(imageToProcess, 0, skin, x, guitarStrings, guitarFrets);
+				MusicNote notePlayed = noteDetector.getNote(imageToProcess, imageToAnnotate, 0, skin, x, guitarStrings, guitarFrets);
 				
 				if (notePlayed != null)
 				{

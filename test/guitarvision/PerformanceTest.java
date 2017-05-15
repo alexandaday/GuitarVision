@@ -121,7 +121,7 @@ public class PerformanceTest {
 				@Override
 				public boolean accept(File dir, String name) {
 					// TODO Auto-generated method stub
-					return (new File(dir, name)).isFile() && (name.toLowerCase().endsWith(".mov"));
+					return (new File(dir, name)).isFile() && ((name.toLowerCase().endsWith(".mov")) || (name.toLowerCase().endsWith(".mp4")));
 				}
 			});
 			
