@@ -526,6 +526,35 @@ public class EdgeDetector {
 		
 		previousDistance = Integer.MAX_VALUE;
 		
+		ArrayList<DetectedLine> initialToRemove = new ArrayList<DetectedLine>();
+		
+		//Filter initial frets
+		for (int index = 0; index < lines.size() - 2; index++)
+		{
+			DetectedLine currentLine = lines.get(index);
+			DetectedLine nextLine = lines.get(index + 1);
+			DetectedLine furtherLine = lines.get(index + 2);
+			
+			double distance = nextLine.getRho() - currentLine.getRho();
+			double nextDistance = furtherLine.getRho() - nextLine.getRho();
+			
+			if (distance > nextDistance * 1.9)
+			{
+				initialToRemove.add(currentLine);
+			}
+			else
+			{
+				break;
+			}
+		}
+		
+		for(DetectedLine line: initialToRemove)
+		{
+			lines.remove(line);
+		}
+		
+		
+		//Reduce down to 20 frets
 		for(int x = lines.size() - 1; x >= numberOfLinesRequired; x--)
 		{
 			lines.remove(lines.get(x));

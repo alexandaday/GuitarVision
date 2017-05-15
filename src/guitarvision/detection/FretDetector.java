@@ -145,6 +145,13 @@ public class FretDetector {
 		
 		ArrayList<ArrayList<DetectedLine>> fretGroupings = clusterGuitarFrets(parallelLines, noGroups);
 		
+		//System.out.println("Groupigns");
+		
+//		for (ArrayList<DetectedLine> grouping : fretGroupings)
+//		{
+//			System.out.println(grouping.size());
+//		}
+		
 		ArrayList<DetectedLine> selectedFrets = selectEachGuitarFret(fretGroupings);
 		
 		//System.out.println(selectedFrets.size());
@@ -152,6 +159,9 @@ public class FretDetector {
 		Collections.sort(selectedFrets);
 		
 		ArrayList<DetectedLine> finalFrets = edgeDetector.evenlyDistributeLinesExponential(selectedFrets, numberFretsToDetect, Intercept.XINTERCEPT);//edgeDetector.evenlyDistribute(selectedFrets, numberFretsToDetect, Intercept.XINTERCEPT);
+		
+		//System.out.println("FINAL");
+		//System.out.println(selectedFrets.size());
 		
 		//System.out.println("NO frets generated:"+finalFrets.size());
 		
@@ -441,14 +451,14 @@ public class FretDetector {
 
 	private ArrayList<ArrayList<DetectedLine>> clusterGuitarFrets(ArrayList<DetectedLine> filteredStrings, int noGroups)
 	{
-		//Create matrix to cluster with the x intercepts of all lines
+		//Create matrix to cluster with the rho of all lines
 		Mat linesToCluster = new Mat(filteredStrings.size(), 1, CvType.CV_32F);
 
 		for(int a = 0; a < filteredStrings.size(); a++)
 		{
 			DetectedLine curString = filteredStrings.get(a);
-			double xIntercept = curString.getXIntercept();
-			linesToCluster.put(a, 0, xIntercept);
+			double rhoValue = curString.getRho();// .getXIntercept();
+			linesToCluster.put(a, 0, rhoValue);
 		}
 
 		Mat clusterLabels = new Mat();
@@ -464,7 +474,7 @@ public class FretDetector {
 		}
 		
 		
-		Core.kmeans(linesToCluster, noGroups, clusterLabels, new TermCriteria(TermCriteria.COUNT, 5, 1), 20, Core.KMEANS_RANDOM_CENTERS);
+		Core.kmeans(linesToCluster, noGroups, clusterLabels, new TermCriteria(TermCriteria.COUNT, 5, 1), 5, Core.KMEANS_RANDOM_CENTERS);
 		
 		ArrayList<ArrayList<DetectedLine>> groupedStrings = new ArrayList<ArrayList<DetectedLine>>();
 

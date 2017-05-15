@@ -241,7 +241,7 @@ public class PluckDetector {
 		return stringsBeingPlayed;
 	}
 	
-	public void getStringThicknesses(ArrayList<GuitarString> strings, Mat originalImage)
+	public void getStringThicknesses(ArrayList<GuitarString> strings, ArrayList<DetectedLine> frets, Mat originalImage)
 	{
 		for(int x = 0; x < strings.size(); x++)
 		{
@@ -260,6 +260,19 @@ public class PluckDetector {
 				difference = nextRho - curRho;
 			}
 			
+			double fretSpanStart = 0;
+			double fretSpanEnd = 0;
+			
+			if (frets != null && frets.size() > 0)
+			{
+				fretSpanStart = frets.get(0).getIntercept(Intercept.XINTERCEPT);
+				System.out.println("Start");
+				System.out.println(fretSpanStart);
+				System.out.println(frets.get(0).getRho());
+				System.out.println(frets.get(0).getTheta());
+				fretSpanEnd = frets.get(frets.size()-1).getIntercept(Intercept.XINTERCEPT);
+			}
+			
 			DetectedLine startStringLine = new DetectedLine(curRho - (difference / 2), strings.get(x).getTheta());
 			DetectedLine endStringLine = new DetectedLine(curRho + (difference / 2), strings.get(x).getTheta());
 			
@@ -274,10 +287,10 @@ public class PluckDetector {
 
 			Point collideP2 = endStringLine.getCollisionPoint(otherLine);
 
-			Point point1 = new Point(0,startStringLine.getYIntercept());
+			Point point1 = new Point(fretSpanStart,startStringLine.getYIntercept());
 			Point point2 = new Point(width,collideP.y);
 			Point point3 = new Point(width,collideP2.y);
-			Point point4 = new Point(0,endStringLine.getYIntercept());
+			Point point4 = new Point(fretSpanStart,endStringLine.getYIntercept());
 			sourcePoints.add(point1);
 			sourcePoints.add(point2);
 			sourcePoints.add(point3);

@@ -166,33 +166,13 @@ public class Engine {
 			
 			frameToAnnotate =  currentFrame.clone();
 			
-			//FaceDetector faceDetector = new FaceDetector();
-			
-			//frameToAnnotate = faceDetector.getFaces(frameToAnnotate);
-			
-			//METHOD OF TURNING ON AND OFF DETECTION STAGES TO TRY AND IMPROVE SPEED
-			//GIVE USER FEEDBACK AND IMPROVE DETECTION
-			
 			//Detect strings and frets in frame
 			ArrayList<GuitarString> guitarStrings = stringDetector.getGuitarStrings(currentFrame, frameToAnnotate, edgeDetector, previousStrings, ImageProcessingOptions.DRAWSELECTEDLINES);
 			
-			pluckDetector.getStringThicknesses(guitarStrings, currentFrame);
 			
-			//ArrayList<GuitarString> guitarStrings = stringDetector.getAccurateGuitarStrings(currentFrame, frameToAnnotate, ImageProcessingOptions.DRAWSELECTEDLINES);
-			
-			previousStrings = guitarStrings;
-			
-			//ArrayList<DetectedLine> guitarFrets = fretDetector.getGuitarFrets(currentFrame, frameToAnnotate, guitarStrings, fretEdgeDetector, ImageProcessingOptions.NOPROCESSING);
 
-			
-//			FretDetector fretNeckDetector = new FretDetector();
-//			EdgeDetector fretNeckEdgeDetector = new EdgeDetector();
-//			fretNeckEdgeDetector.setCannyLowerThreshold(0);
-//			fretNeckEdgeDetector.setCannyUpperThreshold(70);
-//			fretNeckEdgeDetector.setHoughThreshold(220);
-//
-//			ArrayList<DetectedLine> guitarFrets = fretNeckDetector.getGuitarFrets(currentFrame, frameToAnnotate, guitarStrings, fretNeckEdgeDetector, ImageProcessingOptions.DRAWSELECTEDLINES);
-//			
+			previousStrings = guitarStrings;
+
 			EdgeDetector fretEdgeDetector = new EdgeDetector();
 			fretEdgeDetector.setCannyLowerThreshold(0);
 			fretEdgeDetector.setCannyUpperThreshold(250);
@@ -200,6 +180,8 @@ public class Engine {
 
 			ArrayList<DetectedLine> guitarFrets = fretDetector.getGuitarFrets(currentFrame, frameToAnnotate, guitarStrings, fretEdgeDetector, previousFrets, ImageProcessingOptions.DRAWSELECTEDLINES);
 			
+			
+			pluckDetector.getStringThicknesses(guitarStrings, guitarFrets, currentFrame);
 			
 			previousFrets = guitarFrets;
 			
@@ -385,7 +367,7 @@ public class Engine {
 
 			ArrayList<DetectedLine> guitarFrets = fretDetector.getGuitarFrets(imageToProcess, imageToAnnotate, guitarStrings, fretEdgeDetector, null, ImageProcessingOptions.DRAWSELECTEDLINES);
 			
-			
+			pluckDetector.getStringThicknesses(guitarStrings, guitarFrets, imageToProcess);
 			
 			//GuitarHeadDetector headDetector = new GuitarHeadDetector();
 			
