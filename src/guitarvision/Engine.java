@@ -249,9 +249,9 @@ public class Engine {
 						if (stringsPlayed[x] && currentlyHeldNotes.get(x) == null)
 						{
 							//Create new note object
-							MusicNote notePlayed = noteDetector.getNote(currentFrame, frameToAnnotate, frameNo, skin, x, guitarStrings, guitarFrets);
+							MusicNote notesPlayed = noteDetector.getNote(currentFrame, frameToAnnotate, frameNo, skin, x, guitarStrings, guitarFrets);
 
-							currentlyHeldNotes.set(x, notePlayed);
+							currentlyHeldNotes.set(x, notesPlayed);
 						}
 						else if (!stringsPlayed[x] && currentlyHeldNotes.get(x) != null)
 						{
@@ -265,6 +265,7 @@ public class Engine {
 								int initialFrame = currentNote.startingFrame;
 								int frameDuration = currentNote.getEndingFrame() - initialFrame;
 								int framesInTick = (int) Math.round((double) frameDuration / (double) firstNoteDuration);
+								if (framesInTick < 1) framesInTick = 1;
 								transcribedMusic.setInitialFrame(initialFrame);
 								transcribedMusic.setFramesPerBeat(framesInTick);
 							}
@@ -295,8 +296,15 @@ public class Engine {
 							currentNote = currentlyHeldNotes.get(x);
 							currentSemitone = intToMusicalNote(currentNote.note);
 						}
+						
+						
+						boolean beingPlayed = false;
+						if (x < stringsPlayed.length)
+						{
+							beingPlayed = stringsPlayed[x];
+						}
 
-						Imgproc.putText(frameToAnnotate, "String "+Integer.toString(x)+": " + stringsPlayed[x] , new Point((currentFrame.rows() / scaleFactor) * 1 ,(currentFrame.cols() / (scaleFactor)) * (x+1)), Core.FONT_ITALIC, 1.0, new Scalar(255,255,255), 2);
+						Imgproc.putText(frameToAnnotate, "String "+Integer.toString(x)+": " + beingPlayed , new Point((currentFrame.rows() / scaleFactor) * 1 ,(currentFrame.cols() / (scaleFactor)) * (x+1)), Core.FONT_ITALIC, 1.0, new Scalar(255,255,255), 2);
 						Imgproc.putText(frameToAnnotate, "Note : " + currentSemitone , new Point((currentFrame.rows() / scaleFactor) * 8 ,(currentFrame.cols() / (scaleFactor)) * (x+1)), Core.FONT_ITALIC, 1.0, new Scalar(255,255,255), 2);
 					}
 				}

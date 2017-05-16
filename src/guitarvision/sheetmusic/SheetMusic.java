@@ -52,7 +52,11 @@ public class SheetMusic {
 				
 				int ticks = (int) Math.round(((double)frames / (double) framesPerTick));
 				
+				if (ticks == 0) ticks = 1;
+				
 				int initialTick = (int) Math.round(((double) (startFrame - globalStartFrame) / (double) framesPerTick));
+			
+				if (initialTick < 0) initialTick = 0;
 				
 				if (ticks + initialTick > finalTick)
 				{

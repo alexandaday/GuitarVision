@@ -24,7 +24,7 @@ public class FretDetector {
 	public int initialNumberFretsToDetect = 30;
 	public int numberFretsToDetect = 20;
 	
-	private double previousFretsWeighting = 0.99;
+	private double previousFretsWeighting = 0.9999;
 	
 	public ArrayList<DetectedLine> getGuitarFrets(Mat imageToProcess, Mat imageToAnnotate, ArrayList<GuitarString> guitarStrings, EdgeDetector edgeDetector, ArrayList<DetectedLine> previousFrets, ImageProcessingOptions processingOptions)
 	{
