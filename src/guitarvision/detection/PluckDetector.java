@@ -37,7 +37,7 @@ public class PluckDetector {
 	//Assume horizontal line
 	public Double getMeanStringThickness(Mat contourImage)
 	{
-		Engine.getInstance().exportImage(contourImage, "examplecontour.png");
+		//Engine.getInstance().exportImage(contourImage, "examplecontour.png");
 		
 		int count = 0;
 		int thicknessTotal = 0;
@@ -82,7 +82,7 @@ public class PluckDetector {
 		
 		Imgproc.cvtColor(image, image, Imgproc.COLOR_RGB2HSV);
 		
-		Engine.getInstance().exportImage(image, "croppedimage.png");
+		//Engine.getInstance().exportImage(image, "croppedimage.png");
 		
 		Imgproc.GaussianBlur(image, image,  new Size(3, 3), 1);
 		
@@ -94,7 +94,7 @@ public class PluckDetector {
 		
 		Imgproc.dilate(sobelOutput, sobelOutput, kernelD);
 		
-		Engine.getInstance().exportImage(sobelOutput, "sobel.png");
+		//Engine.getInstance().exportImage(sobelOutput, "sobel.png");
 		
 		for(int x1 = 0; x1 < image.rows(); x1 ++)
 		{
@@ -116,17 +116,17 @@ public class PluckDetector {
 
 		}
 		
-		Engine.getInstance().exportImage(greyImage, "sobel_2.png");
+		//Engine.getInstance().exportImage(greyImage, "sobel_2.png");
 
 		image = greyImage;
 		
-		Engine.getInstance().exportImage(image, "thresholdimage.png");
+		//Engine.getInstance().exportImage(image, "thresholdimage.png");
 		
 		Mat kernel = Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, new Size(8,8));
 		
 		Imgproc.erode(image, image, kernel);
 
-		Engine.getInstance().exportImage(image, "eroded.png");
+		//Engine.getInstance().exportImage(image, "eroded.png");
 		
 		//Structure analysis perimeter
 		
@@ -165,7 +165,7 @@ public class PluckDetector {
 			
 			Imgproc.drawContours(contourImage, contoursToDraw, -1, new Scalar(150,150,150));
 			
-			Engine.getInstance().exportImage(contourImage, "contours.png");
+			//Engine.getInstance().exportImage(contourImage, "contours.png");
 			
 			double thickness = getMeanStringThickness(contourImage);
 			
@@ -186,7 +186,7 @@ public class PluckDetector {
 		return 0.0;
 	}
 	
-	double thicknessThresholdFactor = 1.14;
+	double thicknessThresholdFactor = 1.2;
 	
 	public boolean[] vibratingStrings(ArrayList<GuitarString> strings)
 	{

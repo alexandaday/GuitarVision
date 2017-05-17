@@ -10,7 +10,7 @@ import org.opencv.imgproc.Imgproc;
 public class SkinDetector {
 	private static int detectedColour = 255;
 	
-	private static final int overlapThreshold = 5;
+	private static final int overlapThreshold = 3;
 	
 	//Skin analysis algorithm from paper by Christophe Garcia and Georgios Tziritas
 	//Face detection using quantized skin color regions merging and wavelet packet analysis. IEEE Transactions on Multimedia, 1(3):264.277, 1999.

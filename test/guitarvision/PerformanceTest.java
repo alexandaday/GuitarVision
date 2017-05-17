@@ -125,8 +125,13 @@ public class PerformanceTest {
 				}
 			});
 			
-			for(String videoAdress : eachVideoAddress)
+			for(String videoAddress : eachVideoAddress)
 			{
+				boolean poorLighting = false;
+				if (videoAddress.contains("scene_poor_lighting"))
+				{
+					poorLighting = true;
+				}
 				
 				//Make into directory structure!
 				//Create directory
@@ -135,9 +140,9 @@ public class PerformanceTest {
 				//System.out.println("FOUND VIDEO");
 				//System.out.println(sampleVideoDirectory + directory + java.io.File.separator + videoAdress);
 				
-				File videoFile = new File(sampleVideoDirectory + directory + java.io.File.separator + videoAdress);
+				File videoFile = new File(sampleVideoDirectory + directory + java.io.File.separator + videoAddress);
 				
-				ProcessedFiles files = Engine.getInstance().transcribeFromVideo(videoFile, 1000, outputMidi, 4, false, true);
+				ProcessedFiles files = Engine.getInstance().transcribeFromVideo(videoFile, 1000, outputMidi, 4, poorLighting, true);
 				
 				File outputMIDIFile = files.getMidiFile();
 				
