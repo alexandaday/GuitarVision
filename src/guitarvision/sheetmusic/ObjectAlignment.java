@@ -24,12 +24,12 @@ public class ObjectAlignment<T> {
 		matchScore = value;
 	}
 	
-	public void setMismatchPenalty(int value)
+	public void setMismatchScore(int value)
 	{
 		mismatchScore = value;
 	}
 	
-	public void setInsertDeletePenalty(int value)
+	public void setInsertDeleteScore(int value)
 	{
 		insertDeleteScore = value;
 	}

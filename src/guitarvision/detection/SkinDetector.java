@@ -75,11 +75,14 @@ public class SkinDetector {
 	
 	public Mat smoothDetectedSkin(Mat image)
 	{
-		Mat kernel = Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, new Size(3,3));
+		Mat kernelErode = Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, new Size(5,5));
+		Mat kernelDilate = Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, new Size(8,8));
 		
 		Mat result = new Mat();
 		
-		Imgproc.dilate(image, result, kernel);
+		result = image;
+		Imgproc.erode(image, result, kernelErode);
+		Imgproc.dilate(result, result, kernelDilate);
 		
 		return result;
 	}

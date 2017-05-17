@@ -35,8 +35,8 @@ public class ObjectAlignmentTest {
 		
 		ObjectAlignment<String> alignment = new ObjectAlignment<String>(list1, list2);
 		
-		alignment.setInsertDeletePenalty(0);
-		alignment.setMismatchPenalty(0);
+		alignment.setInsertDeleteScore(0);
+		alignment.setMismatchScore(0);
 		alignment.setMatchScore(1);
 		
 		int result = alignment.computeLongestMatchScore();

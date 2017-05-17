@@ -20,11 +20,13 @@ public class SheetComparator {
 		if (!file1.exists())
 		{
 			System.out.println("FILE DOES NOT EXIST");
+			System.out.println(file1.getAbsolutePath());
 		}
 		
 		if (!file2.exists())
 		{
-			System.out.println("FILE DOES NOT EXIST 2");
+			System.out.println("FILE DOES NOT EXIST (2)");
+			System.out.println(file2.getAbsolutePath());
 		}
 		
 		//System.out.println("FILES");
@@ -98,16 +100,16 @@ public class SheetComparator {
 					}
 				}
 				
-				//System.out.println("Byte array sizes");
-				//System.out.println(pitches1.size());
-				//System.out.println(pitches2.size());
+//				System.out.println("Byte array sizes");
+//				System.out.println(pitches1.size());
+//				System.out.println(pitches2.size());
 				
 				ObjectAlignment<Byte> alignPieces = new ObjectAlignment<Byte>(pitches1, pitches2);
 				
 				alignPieces.setMatchScore(4);
-				alignPieces.setMismatchPenalty(1);
-				alignPieces.setInsertDeletePenalty(1);
-				byte val = 5;
+				alignPieces.setMismatchScore(-1);
+				alignPieces.setInsertDeleteScore(0);
+				byte val = 0;
 				alignPieces.setMatchTolerance(new Byte(val));
 				
 				result.alignmentScore = alignPieces.computeLongestMatchScore();

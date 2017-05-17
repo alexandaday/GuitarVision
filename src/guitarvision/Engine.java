@@ -249,9 +249,9 @@ public class Engine {
 						if (stringsPlayed[x] && currentlyHeldNotes.get(x) == null)
 						{
 							//Create new note object
-							MusicNote notesPlayed = noteDetector.getNote(currentFrame, frameToAnnotate, frameNo, skin, x, guitarStrings, guitarFrets);
+							MusicNote notePlayed = noteDetector.getNote(currentFrame, frameToAnnotate, frameNo, skin, x, guitarStrings, guitarFrets);
 
-							currentlyHeldNotes.set(x, notesPlayed);
+							currentlyHeldNotes.set(x, notePlayed);
 						}
 						else if (!stringsPlayed[x] && currentlyHeldNotes.get(x) != null)
 						{
@@ -296,6 +296,16 @@ public class Engine {
 							currentNote = currentlyHeldNotes.get(x);
 							currentSemitone = intToMusicalNote(currentNote.note);
 						}
+						else
+						{
+							//Detect note even if currently plucked
+							Mat nonVibratingAnnotations = currentFrame.clone();
+							MusicNote currentFretNote = noteDetector.getNote(currentFrame, nonVibratingAnnotations, frameNo, skin, x, guitarStrings, guitarFrets);
+							if (!(currentFretNote == null))
+							{
+								currentSemitone = intToMusicalNote(currentFretNote.note);
+							}
+						}
 						
 						
 						boolean beingPlayed = false;
@@ -323,6 +333,9 @@ public class Engine {
 			
 			frameNo++;
 			if ((numberFramesToProcess!= null) && (frameNo >= numberFramesToProcess)) break;
+			
+			//Skip every other frame for speed efficiency
+			guitarVideo.read(currentFrame);
 		}
 		
 		guitarVideo.release();
