@@ -1,8 +1,8 @@
 package guitarvision.detection;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Random;
 
 import org.opencv.core.Core;
@@ -15,140 +15,22 @@ import org.opencv.imgproc.Imgproc;
 public class StringDetector {	
 	private double angleAllowance = 0.35;
 
-	private int numberInitialLinesToDetect = 8;
-	private int numberStringsToDetect = 6;
+	private int numberLinesToDetectInitial = 8;
+	private int numberLinesToDetectFinal = 6;
 	
 	private Scalar stringColour = new Scalar(0,255,0);
 	
-	private double previousStringsWeighting = 0.95;
+	private double previousStringsWeight = 0.95;
 	
-	public ArrayList<GuitarString> getAccurateGuitarStrings(Mat originalImage, Mat imageToAnnotate, ArrayList<GuitarString> previousStrings, ImageProcessingOptions processingOptions)
-	{
-		HashMap<Integer, ArrayList<GuitarString>> allStrings = new HashMap<Integer, ArrayList<GuitarString>>();
-		Integer highestScore = null;
-		int bestCanny = 0;
-		
-		//Find best scoring canny upper threshold
-		for (int cannyUpper = 50; cannyUpper < 400; cannyUpper+=50)
-		{
-			//System.out.println("CANNY THRESHOLD");
-			//System.out.println(cannyUpper);
-			
-			EdgeDetector edgeDetector = new EdgeDetector();
-			edgeDetector.setCannyLowerThreshold(0);
-			edgeDetector.setCannyUpperThreshold(cannyUpper);
-			edgeDetector.setHoughThreshold(300);
-			
-			ArrayList<GuitarString> curStrings = getGuitarStrings(originalImage, imageToAnnotate, edgeDetector, previousStrings, ImageProcessingOptions.NOPROCESSING);
-		
-			int curScore = getSpacingScore(curStrings);
-			
-			allStrings.put(curScore, curStrings);
-
-			if ((highestScore == null) || (curScore > highestScore))
-			{
-				highestScore = curScore;
-				bestCanny = cannyUpper;
-			}
-		}
-		
-		//Find best scoring hough threshold for the canny threshold
-		for (int houghUpper = 300; houghUpper < 400; houghUpper+=50)
-		{
-			EdgeDetector edgeDetector = new EdgeDetector();
-			edgeDetector.setCannyLowerThreshold(0);
-			edgeDetector.setCannyUpperThreshold(bestCanny);
-			edgeDetector.setHoughThreshold(houghUpper);
-			
-			ArrayList<GuitarString> curStrings = getGuitarStrings(originalImage, imageToAnnotate, edgeDetector, previousStrings, ImageProcessingOptions.NOPROCESSING);
-		
-			int curScore = getSpacingScore(curStrings);
-			
-			allStrings.put(curScore, curStrings);
-
-			if ((highestScore == null) || (curScore > highestScore))
-			{
-				highestScore = curScore;
-			}
-		}
-		
-		ArrayList<GuitarString> result = null;
-		
-		if ((highestScore != null) && (allStrings.containsKey(highestScore)))
-		{
-			result = allStrings.get(highestScore);
-		}
-		
-		if((processingOptions == ImageProcessingOptions.DRAWSELECTEDLINES) || (processingOptions == ImageProcessingOptions.DRAWCLUSTERS))
-		{
-			for(DetectedLine string : result)
-			{
-				Imgproc.line(imageToAnnotate, string.getPoint1(), string.getPoint2(), stringColour);
-			}
-		}
-		
-		
-		return result;
-	}
-	
-	public int getSpacingScore(ArrayList<GuitarString> strings)
-	{
-		//Assume strings are sorted
-		
-		int toleranceInPixels = 3;
-		
-		HashMap<Integer, Integer> binCount = new HashMap<Integer,Integer>();
-		
-		for(int index = 0; index < strings.size() - 1; index++)
-		{
-			double curRho = strings.get(index).getYIntercept();
-			double nextRho = strings.get(index+1).getYIntercept();
-			
-			//THEY AREN'T SORTED BY Y INTERCEPT
-			
-			double difference = nextRho - curRho;
-			
-			//System.out.println("Difference");
-			//System.out.println(difference);
-			
-			//Plus one to avoid quantising to 0
-			Integer differenceQuantised = (int) (difference - (difference % toleranceInPixels)) + 1;
-			
-			//Ignore strings which aren't separated
-			if (difference == 0) differenceQuantised = 0;
-			
-			if (binCount.containsKey(differenceQuantised))
-			{
-				binCount.put(differenceQuantised, binCount.get(differenceQuantised)+1);
-			}
-			else
-			{
-				binCount.put(differenceQuantised, 1);
-			}
-			//Compare each to next in sorted order
-			//Create count of number of each distance
-			//Disregard 0 pixels
-			//Take maximum similar - weighted of others
-		}
-		
-		//Returns how many lines are separated by the mode length
-		int maxBin = 0;
-		
-		for(Integer difference: binCount.keySet())
-		{
-			if (difference != 0)
-			{
-				int count = binCount.get(difference);
-				if (count > maxBin) maxBin = count;
-			}
-		}
-		
-		//System.out.println("Score");
-		//System.out.println(maxBin);
-		
-		return maxBin;
-	}
-	
+	/**
+	 * Find guitar strings in image
+	 * @param image containing guitar
+	 * @param copy of image to annotate strings for user
+	 * @param edge detector to use for finding the strings
+	 * @param list of strings from previous frame
+	 * @param processing option object, whether to draw strings and clusters on the annotated image
+	 * @return
+	 */
 	public ArrayList<GuitarString> getGuitarStrings(Mat originalImage, Mat imageToAnnotate, EdgeDetector edgeDetector, ArrayList<GuitarString> previousStrings, ImageProcessingOptions processingOptions)
 	{
 		if (edgeDetector == null)
@@ -165,50 +47,41 @@ public class StringDetector {
 		
 		ArrayList<DetectedLine> initialLines = getLinesFromParameters(houghLineParameters);
 		
-		ArrayList<DetectedLine> parallelLines = filterGuitarStrings(initialLines);
+		ArrayList<DetectedLine> parallelLines = filterGuitarStringsByAngle(initialLines);
 		
-		int noGroups = numberInitialLinesToDetect;
+		int noGroups = numberLinesToDetectInitial;
 		
 		ArrayList<ArrayList<DetectedLine>> stringGroupings = clusterGuitarStrings(parallelLines, noGroups);
 		
-		ArrayList<DetectedLine> selectedStrings = selectCenterGuitarString(stringGroupings);
+		ArrayList<DetectedLine> selectedStrings = selectCentralLinesFromClusters(stringGroupings);
 		
 		Collections.sort(selectedStrings);
 		
-		//ArrayList<ArrayList<DetectedLine>> stringGroupings2 = clusterGuitarStrings(selectedStrings, 6);
-		
-		//ArrayList<DetectedLine> selectedStrings2 = selectCenterGuitarString(stringGroupings2);
-		
-		
-		ArrayList<DetectedLine> filteredStrings = edgeDetector.evenlyDistributeLines(selectedStrings, numberStringsToDetect, Intercept.YINTERCEPT);
+		ArrayList<DetectedLine> filteredStrings = evenlyDistributeStrings(selectedStrings, numberLinesToDetectFinal);
 	
 		if (filteredStrings == null)
 		{
 			filteredStrings = new ArrayList<DetectedLine>();
 		}
-		
-		//PERFORM EVEN DISTRIBUTION BEFORE SORT STRINGS
-		
+
 		ArrayList<GuitarString> guitarStringsFiltered = new ArrayList<GuitarString>();
 		
-		for(DetectedLine l : filteredStrings)
+		for(DetectedLine line : filteredStrings)
 		{
-			if (l instanceof GuitarString)
+			if (line instanceof GuitarString)
 			{
-				guitarStringsFiltered.add((GuitarString) l);
+				guitarStringsFiltered.add((GuitarString) line);
 			}
 		}
 		
-		ArrayList<GuitarString> finalStrings = trackStrings(guitarStringsFiltered, previousStrings);
-		
-		
-		
-		
+		ArrayList<GuitarString> finalStrings = performPreviousStringWeighting(guitarStringsFiltered, previousStrings);
+
 		if((processingOptions == ImageProcessingOptions.DRAWSELECTEDLINES) || (processingOptions == ImageProcessingOptions.DRAWCLUSTERS))
 		{
 			for(DetectedLine string : finalStrings)
 			{
 				Imgproc.line(imageToAnnotate, string.getPoint1(), string.getPoint2(), stringColour);
+
 			}
 		}
 		
@@ -227,6 +100,7 @@ public class StringDetector {
 				}
 			}
 		}
+
 		
 		return finalStrings;
 	}
@@ -247,7 +121,7 @@ public class StringDetector {
 		return guitarStrings;
 	}
 
-	private ArrayList<DetectedLine> filterGuitarStrings(ArrayList<DetectedLine> candidateStrings)
+	private ArrayList<DetectedLine> filterGuitarStringsByAngle(ArrayList<DetectedLine> candidateStrings)
 	{
 		double totalAngle = 0;
 
@@ -277,7 +151,7 @@ public class StringDetector {
 
 	private ArrayList<ArrayList<DetectedLine>> clusterGuitarStrings(ArrayList<DetectedLine> filteredStrings, int noGroups)
 	{
-		//Create matrix to cluster with the y intercepts of all lines
+		//Cluster lines by y intercept
 		Mat linesToCluster = new Mat(filteredStrings.size(), 1, CvType.CV_32F);
 
 		for(int a = 0; a < filteredStrings.size(); a++)
@@ -299,13 +173,8 @@ public class StringDetector {
 			return new ArrayList<ArrayList<DetectedLine>>();
 		}
 		
-		//Maybe use compact value it returns IMPORTANT
 		Core.kmeans(linesToCluster, noGroups, clusterLabels, new TermCriteria(TermCriteria.COUNT, 50, 1), 10, Core.KMEANS_RANDOM_CENTERS);
-		
-		//Maybe use the centers returned
-		//Mat centers = new Mat();
-		//Core.kmeans(linesToCluster, noGroups, clusterLabels, new TermCriteria(TermCriteria.COUNT, 50, 1), 10, Core.KMEANS_RANDOM_CENTERS, centers);
-		
+
 		ArrayList<ArrayList<DetectedLine>> groupedStrings = new ArrayList<ArrayList<DetectedLine>>();
 
 		for(int c = 0; c < noGroups; c++)
@@ -326,7 +195,7 @@ public class StringDetector {
 		return groupedStrings;
 	}
 
-	private ArrayList<DetectedLine> selectCenterGuitarString(ArrayList<ArrayList<DetectedLine>> groupedStrings)
+	private ArrayList<DetectedLine> selectCentralLinesFromClusters(ArrayList<ArrayList<DetectedLine>> groupedStrings)
 	{	
 		
 		ArrayList<DetectedLine> finalStrings = new ArrayList<DetectedLine>();
@@ -366,8 +235,141 @@ public class StringDetector {
 		
 		return finalStrings;
 	}
-	
-	public ArrayList<GuitarString> trackStrings(ArrayList<GuitarString> curStrings, ArrayList<GuitarString> previousStrings)
+
+	//Assumes the lines are already sorted by rho value
+	public ArrayList<DetectedLine> evenlyDistributeStrings(ArrayList<DetectedLine> lines, int numberOfLines)
+	{
+		if (lines.size() == 0) return null;
+
+		//Calculate mean and median string separation
+		ArrayList<DetectedLine> filteredLines = new ArrayList<DetectedLine>();
+
+		double totalDistance = 0;
+		double[] distances = new double[lines.size()-1];
+
+		for(int compareTo = 0; compareTo < lines.size() - 1; compareTo++)
+		{
+			int x = compareTo + 1;
+
+			DetectedLine line1 = lines.get(x);
+			DetectedLine line2 = lines.get(compareTo);
+			double distance = line1.getRho() - line2.getRho();
+			totalDistance += distance;
+			distances[compareTo] = distance;
+		}
+
+		double averageDistance = totalDistance / lines.size();
+
+		Arrays.sort(distances);
+
+		double medianDistance = distances[(int) Math.floor(distances.length /2)];
+
+		boolean prevAddedBoth = false;
+
+		//Remove a string from pairs which are separated by more than double or less than half the median distance
+		for(int compareTo = 0; compareTo < lines.size() - 1; compareTo++)
+		{
+			int x = compareTo + 1;
+
+			DetectedLine line1 = lines.get(compareTo);
+			DetectedLine line2 = lines.get(x);
+			double distance = line2.getRho() - line1.getRho();
+
+			if (!((distance < medianDistance / 2) || (distance > medianDistance * 2)))
+			{
+				if (!prevAddedBoth) filteredLines.add(line1);
+				filteredLines.add(line2);
+				prevAddedBoth = true;
+			}
+			else
+			{
+				prevAddedBoth = false;
+			}
+		}
+
+		//Remove a string from pairs with smallest separation when there are more than numberOfLinesRequired strings
+		while (filteredLines.size () > numberOfLines)
+		{
+			double smallestDistance = Double.MAX_VALUE;
+			int smallestIndex = 0;
+
+			for(int compareTo = 0; compareTo < filteredLines.size() - 1; compareTo++)
+			{
+				int x = compareTo + 1;
+
+				DetectedLine line1 = filteredLines.get(compareTo);
+				DetectedLine line2 = filteredLines.get(x);
+				double distance = line2.getRho() - line1.getRho();
+
+				if (distance < smallestDistance)
+				{
+					smallestDistance = distance;
+					smallestIndex = compareTo;
+				}
+			}
+
+			filteredLines.remove(smallestIndex);
+		}
+
+		//Evenly space strings
+		//Start with lower middle string and work outwards using expected positions calculated from the median rho separation
+
+		double[] rhoValues = new double[filteredLines.size()];
+		double[] thetaValues = new double[filteredLines.size()];
+		int x =  0;
+		for(DetectedLine line : filteredLines)
+		{
+			rhoValues[x] = line.getRho();
+			thetaValues[x] = line.getTheta();
+			x++;
+		}
+
+		int middleIndex = (int) Math.floor(rhoValues.length / 2);
+
+		double curRho = filteredLines.get(middleIndex).getRho();;
+		double curTheta = filteredLines.get(middleIndex).getTheta();
+
+		double tolerance = averageDistance/2;
+
+		for (int index = middleIndex; index >= 0; index--)
+		{
+			double expectedRho = curRho;
+
+			double curStringRho = filteredLines.get(index).getRho();
+
+			boolean stringExists = (curStringRho < expectedRho + tolerance) && (curStringRho > expectedRho - tolerance);
+
+			if (!stringExists)
+			{
+				filteredLines.get(index).setRho(expectedRho);
+				filteredLines.get(index).setTheta((filteredLines.get(index).getTheta() + curTheta) / 2);
+			}
+
+			curRho -= medianDistance;
+		}
+
+		curRho = filteredLines.get(middleIndex).getRho() + medianDistance;
+
+		for (int index = middleIndex + 1; index < rhoValues.length; index++)
+		{
+			double expectedRho = curRho;
+
+			double curStringRho = filteredLines.get(index).getRho();
+
+			boolean stringExists = (curStringRho < expectedRho + tolerance) && (curStringRho > expectedRho - tolerance);
+
+			if (!stringExists)
+			{
+				filteredLines.get(index).setRho(expectedRho);
+				filteredLines.get(index).setTheta((filteredLines.get(index).getTheta() + curTheta) / 2);
+			}
+			curRho += medianDistance;
+		}
+		return filteredLines;
+
+	}
+
+	public ArrayList<GuitarString> performPreviousStringWeighting(ArrayList<GuitarString> curStrings, ArrayList<GuitarString> previousStrings)
 	{
 		if (previousStrings == null)
 		{
@@ -381,8 +383,8 @@ public class StringDetector {
 		{
 			for(int x = 0; x < curStrings.size() && x < previousStrings.size(); x++)
 			{
-				curStrings.get(x).setRho((curStrings.get(x).getRho() * (1 - previousStringsWeighting)) + (previousStrings.get(x).getRho() * previousStringsWeighting));
-				curStrings.get(x).setTheta((curStrings.get(x).getTheta() * (1 - previousStringsWeighting)) + (previousStrings.get(x).getTheta() * previousStringsWeighting));
+				curStrings.get(x).setRho((curStrings.get(x).getRho() * (1 - previousStringsWeight)) + (previousStrings.get(x).getRho() * previousStringsWeight));
+				curStrings.get(x).setTheta((curStrings.get(x).getTheta() * (1 - previousStringsWeight)) + (previousStrings.get(x).getTheta() * previousStringsWeight));
 			}
 		}
 		else
@@ -405,12 +407,12 @@ public class StringDetector {
 	
 	public void setNumberOfStringsToDetect(int newNumber)
 	{
-		numberStringsToDetect = newNumber;
+		numberLinesToDetectFinal = newNumber;
 	}
 	
 	public int getNumberOfStringsToDetect()
 	{
-		return numberStringsToDetect;
+		return numberLinesToDetectFinal;
 	}
 }
 

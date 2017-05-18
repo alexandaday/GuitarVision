@@ -12,7 +12,8 @@ public class ObjectAlignment<T> {
 	
 	T matchTolerance = null;
 	
-	//Perform string alignment on the notes in two MIDI files
+	//Perform sequence alignment on two lists
+	//This is used for comparing notes in two MIDI files
 	public ObjectAlignment(ArrayList<T> firstList, ArrayList<T> secondList)
 	{
 		this.firstList = firstList;
@@ -41,7 +42,7 @@ public class ObjectAlignment<T> {
 	
 	private boolean nodeExists(int i, int j)
 	{
-		return ((i >= 0) && (i < firstList.size()) && (j >= 0) && (j < secondList.size()));
+		return ((i >= 0) && (i <= firstList.size()) && (j >= 0) && (j <= secondList.size()));
 	}
 	
 	public int computeLongestMatchScore()
@@ -79,7 +80,7 @@ public class ObjectAlignment<T> {
 					}
 					else
 					{
-						//Hardcoding bytes, but should work with any type with addition
+						//Use tolerances for whether bytes match
 						if (firstVal instanceof Byte && secondVal instanceof Byte)
 						{
 							Byte tolerance = (Byte) matchTolerance;

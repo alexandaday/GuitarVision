@@ -11,6 +11,12 @@ import javax.sound.midi.Sequence;
 import javax.sound.midi.Track;
 
 public class SheetComparator {
+	/**
+	 * Perform sequence alignment on the note pitches from the two midi files and compare the number of notes
+	 * @param first midi file
+	 * @param second midi file
+	 * @return statistic about the two files
+	 */
 	public MusicStatistics compareFiles(File file1, File file2)
 	{
 		MusicStatistics result = new MusicStatistics();
@@ -25,22 +31,14 @@ public class SheetComparator {
 		
 		if (!file2.exists())
 		{
-			System.out.println("FILE DOES NOT EXIST (2)");
+			System.out.println("FILE DOES NOT EXIST");
 			System.out.println(file2.getAbsolutePath());
 		}
-		
-		//System.out.println("FILES");
-		//System.out.println(file1.getAbsolutePath());
-		//System.out.println(file2.getAbsolutePath());
-		
+
 		try
 		{
 			Sequence sequence1 = MidiSystem.getSequence(file1);
 			Sequence sequence2 = MidiSystem.getSequence(file2);
-			
-			//System.out.println("TRACKS");
-			//System.out.println(sequence1.getTracks().length);
-			//System.out.println(sequence2.getTracks().length);
 			
 			if (sequence1.getTracks().length >= 1 && sequence2.getTracks().length >= 1)
 			{
@@ -50,10 +48,6 @@ public class SheetComparator {
 				
 				double size1 = track1.size();
 				double size2 = track2.size();
-				
-				//System.out.println("Number of notes");
-				//System.out.println(size1);
-				//System.out.println(size2);
 				
 				ArrayList<MidiEvent> notes1 = new ArrayList<MidiEvent>();
 				ArrayList<MidiEvent> notes2 = new ArrayList<MidiEvent>();
@@ -66,16 +60,11 @@ public class SheetComparator {
 					MidiEvent event = track1.get(x);
 					byte[] message = event.getMessage().getMessage();
 					Byte pitchData = null;
-					//System.out.println("Status byte is");
-					//System.out.println(event.getMessage().getStatus());
+
 					//There should be a status byte and two data bytes
 					//We only consider the pitch of note starting events
 					if (event.getMessage().getStatus() == 0x90 && message.length >= 2)
 					{
-						//System.out.println("ADDING from 1");
-						//System.out.println("PITCH");
-						//System.out.println(message[1]);
-						
 						pitchData = message[1];
 						notes1.add(event);
 						pitches1.add(pitchData);
@@ -87,22 +76,13 @@ public class SheetComparator {
 					MidiEvent event = track2.get(x);
 					byte[] message = event.getMessage().getMessage();
 					Byte pitchData = null;
-					//System.out.println("Status byte is 2");
-					//System.out.println(event.getMessage().getStatus());
 					if (event.getMessage().getStatus() == 0x90 && message.length >= 2)
 					{
-						//System.out.println("ADDING from 2");
-						//System.out.println("PITCH");
-						//System.out.println(message[1]);
 						pitchData = message[1];
 						notes2.add(event);
 						pitches2.add(pitchData);
 					}
 				}
-				
-//				System.out.println("Byte array sizes");
-//				System.out.println(pitches1.size());
-//				System.out.println(pitches2.size());
 				
 				ObjectAlignment<Byte> alignPieces = new ObjectAlignment<Byte>(pitches1, pitches2);
 				
@@ -115,11 +95,6 @@ public class SheetComparator {
 				result.alignmentScore = alignPieces.computeLongestMatchScore();
 				
 				result.proportionNotes = size1 / size2;
-				
-				//System.out.println("Alignment score");
-				//System.out.println(alignPieces.computeLongestMatchScore());
-				//System.out.println("Proportion notes");
-				//System.out.println(size1 / size2);
 				
 				return result;
 			}

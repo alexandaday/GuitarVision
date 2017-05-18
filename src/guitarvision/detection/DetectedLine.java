@@ -9,11 +9,10 @@ import org.opencv.core.Point;
 
 /**
  * @author Alex Day
- * Class that stores the information for a line, given in Polar Coordinates.
+ * Class that stores the information for a line, given in Polar Coordinates (defined by rho and theta values).
  * Two line end points may be generated for drawing the line.
- * Generally used after a Hough line transform where we have the rho and theta values.
+ * Functionality for finding the intercepts of the line, intersections with other lines and applying matrix transforms.
  */
-
 public class DetectedLine implements Comparable<DetectedLine>
 {
 	//The polar coordinate parameters
@@ -30,7 +29,7 @@ public class DetectedLine implements Comparable<DetectedLine>
 	/**
 	 * We define lines in polar coordinates by the angle and distance to the origin from a point on the line.
 	 * Where the point forms a perpendicular line when joined to the origin.
-	 * @param The 'r'/distance value used to define the line
+	 * @param The rho distance value used to define the line
 	 * @param The angle used to define the line
 	 */
 	public DetectedLine(Double rho, Double theta)
@@ -38,7 +37,6 @@ public class DetectedLine implements Comparable<DetectedLine>
 		this.rho = rho;
 		this.theta = theta;
 	}
-	
 	
 	/**
 	 * Constructor with optional parameter to set the length to extend the line by on either side of (x0,y0)
@@ -74,8 +72,7 @@ public class DetectedLine implements Comparable<DetectedLine>
 		point2.x = Math.rint(x0 - length * (-sinTheta));
 		point2.y = Math.rint(y0 - length * (cosTheta));
 	}
-	
-	
+
 	/**
 	 * Lazily retrieve the first point of the line
 	 * @return The first point of the line
@@ -139,12 +136,14 @@ public class DetectedLine implements Comparable<DetectedLine>
 	{
 		return this.rho / Math.sin(this.theta);
 	}
-	
-	//Y value of point on this line that intersects the line x = verticalLineXPos
+
+	/**
+	 * Get the y value where this line intersects with the line x = xValue
+	 * @param the x coordinate along the line
+	 * @return the corresponding y coordinate
+	 */
 	public double getYAtXValue(int xValue)
 	{
-//		System.out.println("GRADEIENT");
-//		System.out.println(getGradient());
 		return (getGradient() * xValue) + getYIntercept();
 	}
 	
@@ -161,7 +160,11 @@ public class DetectedLine implements Comparable<DetectedLine>
 		}
 	}
 	
-	
+	/**
+	 * Get the point where this line intersects with another line
+	 * @param line to intersect with
+	 * @return intersection point
+	 */
 	public Point getCollisionPoint(DetectedLine otherLine)
 	{
 		Point p1 = getPoint1();
@@ -208,6 +211,11 @@ public class DetectedLine implements Comparable<DetectedLine>
 		}
 	}
 	
+	/**
+	 * Apply matrix transform to the line.
+	 * This updates the polar coordinate parameters and the two points describing the line.
+	 * @param the 3 X 3 matrix transform to apply
+	 */
 	public void applyWarp(Mat warp)
 	{
 		Point p1 = getPoint1();
@@ -230,31 +238,9 @@ public class DetectedLine implements Comparable<DetectedLine>
 		Mat point1Transformed = new Mat(1, 3, CvType.CV_64F);
 		Mat point2Transformed = new Mat(1, 3, CvType.CV_64F);
 		
-//		System.out.println("warp matrix dimensions");
-//		System.out.println(warp.width());
-//		System.out.println(warp.height());
-//		System.out.println(warp.type());
-//		System.out.println("point1vectordimensions");
-//		System.out.println(point1Vector.width());
-//		System.out.println(point1Vector.height());
-//		System.out.println(point1Vector.type());
-		
 		Core.gemm(warp, point1Vector, 1, new Mat(), 0, point1Transformed);
 		Core.gemm(warp, point2Vector, 1, new Mat(), 0, point2Transformed);
-		
-//		System.out.println("new vector");
-//		System.out.println(point1Transformed.width());
-//		System.out.println(point1Transformed.height());
-//		
-//		System.out.println("Before vectors");
-//		Engine.getInstance().printMatrix(point1Vector);
-//		Engine.getInstance().printMatrix(point2Vector);
-//		System.out.println("Warp");
-//		Engine.getInstance().printMatrix(warp);
-//		System.out.println("After vectors");
-//		Engine.getInstance().printMatrix(point1Transformed);
-//		Engine.getInstance().printMatrix(point2Transformed);
-		
+
 		double normalisefactor = point1Transformed.get(2, 0)[0];
 		
 		point1 = new Point();
@@ -276,11 +262,12 @@ public class DetectedLine implements Comparable<DetectedLine>
 		computePoints();
 	}
 	
+	//Method used for sorting lists of lines by rho value
 	@Override
 	public int compareTo(DetectedLine otherLine)
 	{
-		double thisRho = this.rho;//this.getXIntercept();
-		double otherRho = otherLine.rho;//otherLine.getXIntercept();
+		double thisRho = this.rho;
+		double otherRho = otherLine.rho;
 		
 		if (thisRho == otherRho)
 		{
@@ -293,7 +280,6 @@ public class DetectedLine implements Comparable<DetectedLine>
 		else
 		{
 			return 1;
-		}
-		
+		}	
 	}
 }

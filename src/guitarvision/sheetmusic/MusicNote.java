@@ -1,9 +1,12 @@
 package guitarvision.sheetmusic;
 
 public class MusicNote {
-	public int note; //between 0 and 11
-	public int octave; //between 0 and 8
-	public int string; //between 0 and 5
+	//Store the pitch of the note (ranges between 0 and 11 representing notes from C to B)
+	public int note;
+	//Store the octave of the note (ranges between 0 and 8)
+	public int octave;
+	//Store the string used to generate the note (ranges between 0 and 5)
+	public int string;
 	
 	public Integer startingFrame;
 	private Integer endingFrame = null;

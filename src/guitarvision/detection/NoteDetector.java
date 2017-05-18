@@ -9,20 +9,24 @@ import org.opencv.imgproc.Imgproc;
 
 import guitarvision.sheetmusic.MusicNote;
 
+/**
+ * @author Alex Day
+ * Detection class which determines which note is being played given a vibrating string, a set of frets and detected skin.
+ */
 public class NoteDetector {
-	public NoteDetector()
-	{
-		
-	}
 	
-	public MusicNote getNote(Mat frame, Mat frameToAnnotate, int frameNumber, Mat skin, int vibratingStringNo, ArrayList<GuitarString> guitarStrings, ArrayList<DetectedLine> guitarFrets)
+	/**
+	 * Get an object containing the note being played
+	 * @param copy of image to annotate frets which are being played
+	 * @param current frame number in video to store with note object
+	 * @param copy of image with only skin pixels set
+	 * @param number of the string which is vibrating, to store with the note object
+	 * @param list of detected guitar strings
+	 * @param list of detected guitar frets
+	 * @return object containing the note being played
+	 */
+	public MusicNote getNote(Mat frameToAnnotate, int frameNumber, Mat skin, int vibratingStringNo, ArrayList<GuitarString> guitarStrings, ArrayList<DetectedLine> guitarFrets)
 	{
-		//Return open string for me
-		//MusicNote note = new MusicNote(0, 4, 2, frameNumber);
-		
-//		System.out.println("STRING IS");
-//		System.out.println(vibratingStringNo);
-		
 		if (guitarStrings.size() <= vibratingStringNo)
 		{
 			return null;
@@ -40,9 +44,9 @@ public class NoteDetector {
 		Scalar colour1 = new Scalar(255,0,0);
 		Scalar colour2 = new Scalar(0,255,0);
 		Scalar colour3 = new Scalar(0,0,255);
-		Scalar colour4 = new Scalar(255,255,255);
+		Scalar colourOverlap = new Scalar(255,255,255);
 		
-		Scalar colour;
+		Scalar curColour;
 		
 		for(int x = 0; x < guitarFrets.size() - 1; x++)
 		{
@@ -54,15 +58,15 @@ public class NoteDetector {
 			
 			if (alternateColours == 0)
 			{
-				colour = colour1;
+				curColour = colour1;
 			}
 			else if (alternateColours == 1)
 			{
-				colour = colour2;
+				curColour = colour2;
 			}
 			else
 			{
-				colour = colour3;
+				curColour = colour3;
 			}
 
 			alternateColours = (alternateColours + 1) % 3;
@@ -72,17 +76,15 @@ public class NoteDetector {
 			if (overlapping)
 			{
 				startedOverlapping = true;
-//				System.out.println("Overlapping on fret");
-//				System.out.println(x);
-				Imgproc.line(frameToAnnotate, startPoint, endPoint, colour4);
+				Imgproc.line(frameToAnnotate, startPoint, endPoint, colourOverlap);
 			}
 			else
 			{
-				Imgproc.line(frameToAnnotate, startPoint, endPoint, colour);
+				Imgproc.line(frameToAnnotate, startPoint, endPoint, curColour);
 			}
+			
 			if (startedOverlapping && !overlapping)
 			{
-//				System.out.println("Drawing");
 				fretPlaying = x;
 				
 				break;
@@ -131,8 +133,7 @@ public class NoteDetector {
 		octave += additionalOctaves;
 		
 		MusicNote musicNote = new MusicNote(note, octave, vibratingStringNo, frameNumber);
-		
-		
+
 		return musicNote;
 	}
 }

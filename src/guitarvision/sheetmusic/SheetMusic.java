@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import javax.sound.midi.*;
 
 public class SheetMusic {
-	//Assume notes play one after the other
+	//Store notes in sequential order so sequence alignment may be carried out for monophonic music
 	ArrayList<MusicNote> notes = new ArrayList<MusicNote>();
 	
 	public int framesPerTick = 24;
@@ -50,9 +50,10 @@ public class SheetMusic {
 				
 				int frames = endFrame - startFrame;
 				
+				//Convert from frames numbers to tick numbers
 				int ticks = (int) Math.round(((double)frames / (double) framesPerTick));
 				
-				if (ticks == 0) ticks = 1;
+				if (ticks <= 0) ticks = 1;
 				
 				int initialTick = (int) Math.round(((double) (startFrame - globalStartFrame) / (double) framesPerTick));
 			
@@ -63,7 +64,7 @@ public class SheetMusic {
 					finalTick = ticks + initialTick;
 				}
 				
-				//Annotate midi with string used to play note
+				//Annotate MIDI with string used to play note
 				MetaMessage metaMessage = new MetaMessage();
 				metaMessage.setMessage(0x01, (Integer.toString(stringUsed)).getBytes(), 1);
 				

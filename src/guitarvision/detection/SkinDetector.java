@@ -73,6 +73,11 @@ public class SkinDetector {
 		return smoothDetectedSkin(hsvImage);
 	}
 	
+	/**
+	 * Erode and then dilate the detected skin image to remove noise
+	 * @param image to process
+	 * @return processed image
+	 */
 	public Mat smoothDetectedSkin(Mat image)
 	{
 		Mat kernelErode = Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, new Size(5,5));
@@ -81,63 +86,40 @@ public class SkinDetector {
 		Mat result = new Mat();
 		
 		result = image;
+
 		Imgproc.erode(image, result, kernelErode);
+
 		Imgproc.dilate(result, result, kernelDilate);
 		
 		return result;
 	}
+
 	
-//	public Mat detectLeftHand()
-//	{
-//		Imgproc.Canny(image, edges, threshold1, threshold2);
-//		Imgproc.findContours(image, contours, hierarchy, mode, method);
-//	}
-	
+	/**
+	 * Detect whether the given line overlaps with the isolated skin image. 
+	 * The overlap must be over 'overlapThreshold' pixels.
+	 * @param skin image
+	 * @param start point of line
+	 * @param end point of line
+	 * @return whether the line overlaps with the skin image
+	 */
 	public static boolean fretOverlapSkin(Mat skin, Point startPoint, Point endPoint)
 	{
-		
-		
 		Mat lineImage = new Mat(skin.rows(), skin.cols(), skin.type(), new Scalar(0,0,0));
-		
-//		Engine.getInstance().exportImage(lineImage, "testLineOverlap.jpg");
-		
+
 		Imgproc.line(lineImage, startPoint, endPoint, new Scalar(detectedColour,detectedColour,detectedColour));
-		
-//		Engine.getInstance().exportImage(lineImage, "testLineOverlap2.jpg");
-		
+
 		Mat result = new Mat();
 		
 		Core.subtract(lineImage, skin, result);
-		
-		
-//		Engine.getInstance().exportImage(skin, "testSkin.jpg");
-//		Engine.getInstance().exportImage(lineImage, "testLineOverlap3.jpg");
-//		Engine.getInstance().exportImage(result, "testResult.jpg");
-		
-		
+
 		Core.subtract(lineImage, result, result);
-		
-//		Engine.getInstance().exportImage(result, "testResultAfter.jpg");
-		
+
 		Mat greyImage = new Mat();
 
 		Imgproc.cvtColor(result, greyImage, Imgproc.COLOR_BGR2GRAY);
-		
-//		Engine.getInstance().exportImage(greyImage, "testResultGrey.jpg");
-		
+
 		boolean overlap = !(Core.countNonZero(greyImage) < overlapThreshold);
-		
-		//Random rand = new Random();
-		
-		
-//		Engine.getInstance().exportImage(result, "testResult"+rand.nextInt(100)+".jpg");
-		
-//		if (overlap)
-//		{
-//			Engine.getInstance().exportImage(skin, "testSkin.jpg");
-//			Engine.getInstance().exportImage(lineImage, "testLineOverlap.jpg");
-//			Engine.getInstance().exportImage(result, "testResult.jpg");
-//		}
 		
 		return (overlap);
 	}

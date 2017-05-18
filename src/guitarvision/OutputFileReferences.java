@@ -2,11 +2,11 @@ package guitarvision;
 
 import java.io.File;
 
-public class ProcessedFiles {
+public class OutputFileReferences {
 	private File videoFile;
 	private File midiFile;
 	
-	public ProcessedFiles(File videoFile, File midiFile)
+	public OutputFileReferences(File videoFile, File midiFile)
 	{
 		this.videoFile = videoFile;
 		this.midiFile = midiFile;

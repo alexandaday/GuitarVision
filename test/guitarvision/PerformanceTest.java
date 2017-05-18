@@ -21,7 +21,7 @@ public class PerformanceTest {
 	
 	BufferedWriter outputWriter;
 	
-	public File getDirectory(String name)
+	public File getDirectoryFromPath(String name)
 	{
 		File directory = new File(name);
 		
@@ -33,9 +33,12 @@ public class PerformanceTest {
 		return directory;
 	}
 	
-	public File getOutputFile()
+	/**
+	 * @return file object pointing to the output .CSV file
+	 */
+	public File getOutputDataFile()
 	{
-		String outputPath = getDirectory(outputDirectoryName).getPath() + java.io.File.separator + outputFile;
+		String outputPath = getDirectoryFromPath(outputDirectoryName).getPath() + java.io.File.separator + outputFile;
 		
 		File outputFile = new File(outputPath);
 		
@@ -48,11 +51,7 @@ public class PerformanceTest {
 		{
 			if (outputWriter == null)
 			{
-				//System.out.println("outputfile path");
-				//System.out.println(getOutputFile().getPath());
-
-				outputWriter = new BufferedWriter(new FileWriter(getOutputFile()));
-
+				outputWriter = new BufferedWriter(new FileWriter(getOutputDataFile()));
 			}
 
 			outputWriter.write(line + "\n");
@@ -83,6 +82,10 @@ public class PerformanceTest {
 		}
 	}
 	
+	/**
+	 * Run system performance test by transcribing all test videos and performing sequence alignment on their output with
+	 * the manual transcriptions
+	 */
 	public void compareToManualTranscriptions()
 	{
 		System.out.println("Starting performance test");
@@ -93,34 +96,28 @@ public class PerformanceTest {
 		File videoDirectory = new File(sampleVideoDirectory);
 		
 		String[] eachVideoDirectory = videoDirectory.list(new FilenameFilter() {
-			
 			@Override
 			public boolean accept(File dir, String name) {
-				// TODO Auto-generated method stub
 				return new File(dir, name).isDirectory();
 			}
 		});
 		
-		File outputDirectory = getDirectory(outputDirectoryName);
+		File outputDirectory = getDirectoryFromPath(outputDirectoryName);
 		
 		writeOutput(MusicStatistics.tableHeader);
 		
 		for(String directory : eachVideoDirectory)
 		{
-			//System.out.println("directory is ");
-			//System.out.println(directory);
-			
 			File curDirectory = new File(sampleVideoDirectory + directory);
 			
 			File correspondingMIDIFile = new File(sampleMIDIDirectory+directory+".mid");
 			
-			File outputPieceDirectory = getDirectory(outputDirectory.getPath() + java.io.File.separator + directory);
+			File outputPieceDirectory = getDirectoryFromPath(outputDirectory.getPath() + java.io.File.separator + directory);
 			
 			String[] eachVideoAddress = curDirectory.list(new FilenameFilter() {
 				
 				@Override
 				public boolean accept(File dir, String name) {
-					// TODO Auto-generated method stub
 					return (new File(dir, name)).isFile() && ((name.toLowerCase().endsWith(".mov")) || (name.toLowerCase().endsWith(".mp4")));
 				}
 			});
@@ -132,25 +129,17 @@ public class PerformanceTest {
 				{
 					poorLighting = true;
 				}
-				
-				//Make into directory structure!
-				//Create directory
-				String outputMidi = outputPieceDirectory.getPath();// + java.io.File.separator + videoAdress.substring(0, videoAdress.indexOf("."));
-				
-				//System.out.println("FOUND VIDEO");
-				//System.out.println(sampleVideoDirectory + directory + java.io.File.separator + videoAdress);
-				
+
+				String outputMidi = outputPieceDirectory.getPath();
+
 				File videoFile = new File(sampleVideoDirectory + directory + java.io.File.separator + videoAddress);
 				
-				ProcessedFiles files = Engine.getInstance().transcribeFromVideo(videoFile, 1000, outputMidi, 4, poorLighting, true);
+				OutputFileReferences files = Engine.getInstance().transcribeFromVideo(videoFile, 1000, outputMidi, 4, poorLighting, true);
 				
 				File outputMIDIFile = files.getMidiFile();
 				
 				if (!(outputMIDIFile == null))
 				{
-					//System.out.println("OUTPUT PATH");
-					//System.out.println(outputMIDIFile.getPath());
-					
 					compareMIDIFiles(correspondingMIDIFile, outputMIDIFile);
 				}
 				else
@@ -159,17 +148,6 @@ public class PerformanceTest {
 				}
 				
 			}
-			
-			//System.out.println(correspondingMIDIFile.getAbsolutePath());
-			
-			//for each video
-			
-			//processVideo(File videoFile);
-			
-			//Engine.getInstance().processVideo(videoFile);
-			
-			//put output in special place (maybe an argument)
-			
 		}
 		
 		try
@@ -190,8 +168,6 @@ public class PerformanceTest {
 	
 	public void compareMIDIFiles(File actualTranscription, File systemTranscription)
 	{
-		//writeOutput("Test: " + systemTranscription.getAbsolutePath());
-		
 		SheetComparator musicCompare = new SheetComparator();
 		
 		MusicStatistics stats = musicCompare.compareFiles(actualTranscription, systemTranscription);

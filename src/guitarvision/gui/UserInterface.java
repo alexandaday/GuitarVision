@@ -19,10 +19,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ChoiceBox;
-import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
-import javafx.scene.control.MenuButton;
-import javafx.scene.control.MenuItem;
 import javafx.scene.control.RadioButton;
 import javafx.scene.control.Slider;
 import javafx.scene.control.CheckBox;
@@ -124,20 +121,6 @@ public class UserInterface extends Application{
 			}
 		});
 		
-		CheckBox autoLevelsCheckBox = new javafx.scene.control.CheckBox();
-		autoLevelsCheckBox.setText("Auto");
-		autoLevelsCheckBox.setOnAction(new EventHandler<ActionEvent>()
-		{
-			@Override
-			public void handle(ActionEvent event)
-			{
-				boolean autoEnabled = autoLevelsCheckBox.isSelected();
-				sliderCanny.setDisable(autoEnabled);
-				sliderHough.setDisable(autoEnabled);
-				updateImageWhetherAuto(autoEnabled);
-			}
-		});
-		
 		CheckBox checkBoxEdges = new javafx.scene.control.CheckBox();
 		checkBoxEdges.setText("Show Edges");
 		checkBoxEdges.setOnAction(new EventHandler<ActionEvent>()
@@ -219,7 +202,6 @@ public class UserInterface extends Application{
 				}
 			}
 		});
-		
 
 		HBox horizontalLayout = new HBox();
 		HBox horizontalLayout2 = new HBox();
@@ -235,7 +217,6 @@ public class UserInterface extends Application{
 		horizontalLayout2.getChildren().add(labelHough);
 		horizontalLayout2.getChildren().add(sliderHough);
 		horizontalLayout2.getChildren().add(valueHough);
-		//horizontalLayout2.getChildren().add(autoLevelsCheckBox);
 		
 		horizontalLayout3.getChildren().add(image1);
 		horizontalLayout3.getChildren().add(image2);
@@ -255,7 +236,6 @@ public class UserInterface extends Application{
 		//Initialise the window
 		sliderCanny.setValue(70);
 		sliderHough.setValue(300);
-		autoLevelsCheckBox.setSelected(false);
 		
 		updateImage();
 		
@@ -291,9 +271,7 @@ public class UserInterface extends Application{
 		String note3 = "Crotchet/Quarter Note";
 		String note4 = "Quaver/Eighth Note";
 		String note5 = "Semiquaver/Sixteenth Note";
-		
-		
-		
+
 		ChoiceBox<String> noteLengthSelect = new ChoiceBox<String>(
 			FXCollections.observableArrayList(
 					note1,
@@ -389,7 +367,6 @@ public class UserInterface extends Application{
 		alert.showAndWait();
 	}
 	
-	boolean autoCanny = false;
 	int cannyUpper = 0;
 	boolean autoLevels = false;
 	int houghUpper = 0;
@@ -399,12 +376,6 @@ public class UserInterface extends Application{
 	public void updateImageWithCannyUpper(int val)
 	{
 		cannyUpper = val;
-		updateImage();
-	}
-	
-	public void updateImageWhetherAuto(boolean val)
-	{
-		autoLevels = val;
 		updateImage();
 	}
 	
@@ -428,7 +399,7 @@ public class UserInterface extends Application{
 	
 	public void updateImage()
 	{		
-		Mat image = Engine.getInstance().getProcessedImage(cannyUpper, houghUpper, showEdges, imagePath, autoLevels);
+		Mat image = Engine.getInstance().getProcessedImage(cannyUpper, houghUpper, showEdges, imagePath);
 		
 		MatOfByte imageBuffer = new MatOfByte();
 		
