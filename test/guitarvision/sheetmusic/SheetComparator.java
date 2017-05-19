@@ -86,9 +86,9 @@ public class SheetComparator {
 				
 				ObjectAlignment<Byte> alignPieces = new ObjectAlignment<Byte>(pitches1, pitches2);
 				
-				alignPieces.setMatchScore(4);
-				alignPieces.setMismatchScore(-1);
-				alignPieces.setInsertDeleteScore(0);
+				alignPieces.setMatchScore(100);
+				alignPieces.setMismatchScore(-25);
+				alignPieces.setInsertDeleteScore(-1);
 				byte val = 0;
 				alignPieces.setMatchTolerance(new Byte(val));
 				
